@@ -1,0 +1,7 @@
+name: 'cmesh-push-content'
+type: module
+description: 'Push Content'
+package: Custom
+core_version_requirement: ^10 || ^11
+dependencies:
+  - ultimate_cron:ultimate_cron
