@@ -8,8 +8,13 @@ function cmesh_push_content_node_update() {
     \Drupal::logger('cmesh_push_content')->notice('Push Content Job started');
     $output = null;
     $retval = null;
-    $command = escapeshellcmd($CMESH_PUSH_SCRIPT) . ' -o ' . escapeshellarg(CLIENT_ORG) . ' -n ' . escapeshellarg(PROJECT_NAME);
-    exec('$CMESH_PUSH_SCRIPT -o ' . CLIENT_ORG . ' -n ' . PROJECT_NAME, $output, $retval);
+    $cmesh_push_script = getenv('CMESH_PUSH_SCRIPT');
+    if ($cmesh_push_script == '') {
+        \Drupal::logger('cmesh_push_content')->error('CMESH_PUSH_SCRIPT is not set');
+        return;
+    }
+    $command = escapeshellcmd($cmesh_push_script) . ' -o ' . escapeshellarg(CLIENT_ORG) . ' -n ' . escapeshellarg(PROJECT_NAME);
+    exec($command, $output, $retval);
     if ($retval != 0) {
         \Drupal::logger('cmesh_push_content')->error(implode('\n', $output));
         return;
