@@ -1,0 +1,9 @@
+{
+  "name": "consumermesh/local-push",
+  "description": "Local Push",
+  "type": "drupal-module",
+  "version": "0.1.0",
+  "require": {
+    "drupal/ultimate_cron": "^2.0@beta"
+  }
+}
