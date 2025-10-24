@@ -4,14 +4,14 @@ cmesh_push_content.page:
     _form: '\Drupal\cmesh_push_content\Form\CmeshPushContentForm'
     _title: 'Cmesh Push Content'
   requirements:
-    _permission: 'administer site configuration'
+    _permission: 'cmesh_push_content push_content_dev'
 
 cmesh_push_content.execute:
   path: '/admin/config/system/cmesh-push-content/execute'
   defaults:
     _controller: '\Drupal\cmesh_push_content\Controller\CmeshPushContentController::execute'
   requirements:
-    _permission: 'administer site configuration'
+    _permission: 'cmesh_push_content push_content_dev'
   methods: [POST]
 
 cmesh_push_content.status:
@@ -19,5 +19,5 @@ cmesh_push_content.status:
   defaults:
     _controller: '\Drupal\cmesh_push_content\Controller\CmeshPushContentController::status'
   requirements:
-    _permission: 'administer site configuration'
+    _permission: 'cmesh_push_content push_content_dev'
   methods: [GET]

@@ -1,7 +1,7 @@
 name: Cmesh Push Content
 type: module
 description: 'Executes command line operations with real-time output display'
-core_version_requirement: ^10
+core_version_requirement: ^10 || ^11
 package: Custom
 dependencies:
   - drupal:system
