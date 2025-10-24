@@ -1,0 +1,4 @@
+services:
+  cmesh_push_content.service:
+    class: Drupal\cmesh_push_content\Service\CmeshPushContentService
+    arguments: ['@file_system', '@state']

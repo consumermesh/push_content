@@ -1,0 +1,12 @@
+cmesh_push_content:
+  version: 2.0
+  js:
+    js/cmesh_push_content.js: {}
+  css:
+    theme:
+      css/cmesh_push_content.css: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/drupalSettings
+    - core/once
