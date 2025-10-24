@@ -54,8 +54,8 @@ class CmeshPushContentForm extends FormBase {
     $status = $this->commandExecutor->getStatus();
 
     $form['#attached']['library'][] = 'cmesh_push_content/cmesh_push_content';
-    $form['#attached']['drupalSettings']['commandExecutor']['statusUrl'] = Url::fromRoute('cmesh_push_content.status')->toString();
-    $form['#attached']['drupalSettings']['commandExecutor']['executeUrl'] = Url::fromRoute('cmesh_push_content.execute')->toString();
+    $form['#attached']['drupalSettings']['cmeshPushContent']['statusUrl'] = Url::fromRoute('cmesh_push_content.status')->toString();
+    $form['#attached']['drupalSettings']['cmeshPushContent']['executeUrl'] = Url::fromRoute('cmesh_push_content.execute')->toString();
 
     // Add wrapper for AJAX
     $form['#prefix'] = '<div id="cmesh-push-content-form">';
