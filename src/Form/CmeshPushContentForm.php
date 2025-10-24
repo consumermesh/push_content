@@ -170,10 +170,10 @@ class CmeshPushContentForm extends FormBase {
     $inc = dirname(__DIR__, 2) . "/config/{$envKey}.env.inc";
     $org = $name = NULL;
     if (is_file($inc)) {
-      include $inc;
+        ob_start();        // Capture output
+        include $inc;      // Include file
+        ob_end_clean();    // Discard captured output
     }
-    $org = $org ?? 'mars';
-    $name = $name ?? 'mpvg';
 
     $command = sprintf(
       '/opt/cmesh/scripts/pushfin.sh -o %s -n %s',
