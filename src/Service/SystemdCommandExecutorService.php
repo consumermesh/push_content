@@ -95,9 +95,6 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
     }
 
     \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Service started successfully');
-    }
-
-
     // Get the log file path
     $log_file = "/var/log/cmesh/build-{$instance}.log";
 
