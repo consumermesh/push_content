@@ -4,14 +4,14 @@ After=network.target
 
 [Service]
 Type=oneshot
-User=www-data
-Group=www-data
+User=http
+Group=http
 WorkingDirectory=/opt/cmesh
 
 # Environment variables
 Environment="NODE_OPTIONS=--max-old-space-size=8192"
 Environment="PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
-Environment="HOME=/var/www"
+Environment="HOME=/srv/http"
 Environment="NODE_ENV=production"
 
 # Parse the instance name (format: org-name)
