@@ -4,23 +4,25 @@ After=network.target
 
 [Service]
 Type=oneshot
+
+# User and group - adjust for your system
+# Arch Linux: http
+# Debian/Ubuntu: www-data
 User=http
 Group=http
-WorkingDirectory=/opt/cmesh
 
 # Environment variables
 Environment="NODE_OPTIONS=--max-old-space-size=8192"
 Environment="PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
-Environment="HOME=/srv/http"
+Environment="HOME=/tmp"
 Environment="NODE_ENV=production"
 
-# Parse the instance name (format: org-name)
-# The command will receive both as arguments
+# The command to execute
 ExecStart=/opt/cmesh/scripts/pushfin-systemd.sh %i
 
 # Logging
-StandardOutput=append:/var/log/cmesh/build-%i-%t.log
-StandardError=append:/var/log/cmesh/build-%i-%t.log
+StandardOutput=append:/var/log/cmesh/build-%i.log
+StandardError=append:/var/log/cmesh/build-%i.log
 
 # Resource limits
 MemoryMax=10G
