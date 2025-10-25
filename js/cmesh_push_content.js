@@ -1,7 +1,7 @@
 (function ($, Drupal, drupalSettings) {
   'use strict';
 
-  // VERSION 3.0 - Poll only when running, 3 second intervals
+  // VERSION 3.1 - Start polling on button click
   // Global state to track if we've already initialized
   var initialized = false;
   var pollInterval = null;
@@ -123,7 +123,17 @@
         startPolling();
       }
 
-      // After AJAX form submission, check if we should start polling
+      // Listen for the Push button click to start polling
+      $form.on('click', '#edit-submit', function() {
+        console.log('Push button clicked, will start polling after form submission');
+        // Start polling after a short delay to allow the form to submit
+        setTimeout(function() {
+          console.log('Starting polling after button click');
+          startPolling();
+        }, 1000);
+      });
+
+      // After AJAX form submission, ensure polling is active if needed
       $(document).ajaxComplete(function(event, xhr, settings) {
         // Check if this was our form submission
         if (settings.url && settings.url.indexOf('/admin/config/system/cmesh-push-content') !== -1) {
@@ -131,8 +141,8 @@
           
           // Wait a moment for the DOM to update
           setTimeout(function() {
-            // If Stop button now exists, a command was started
-            if ($('#edit-stop').length > 0) {
+            // If Stop button now exists and we're not already polling, start
+            if ($('#edit-stop').length > 0 && pollInterval === null) {
               console.log('Stop button detected after submission, starting polling');
               startPolling();
             }
