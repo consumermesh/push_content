@@ -144,9 +144,19 @@ class CmeshPushContentService {
       $output = file_get_contents($process_info['output_file']);
     }
 
-    // If process is not running, clean up.
-    if (!$is_running) {
-      $this->cleanup($process_info);
+    // If process just completed, store final output and mark as completed
+    if (!$is_running && !isset($process_info['completed'])) {
+      $process_info['completed'] = time();
+      $process_info['final_output'] = $output;
+      $this->state->set('cmesh_push_content.current', $process_info);
+      
+      // Clean up temporary files but keep the state with output
+      $this->cleanupFiles($process_info);
+    }
+
+    // If completed, use stored final output
+    if (isset($process_info['completed'])) {
+      $output = $process_info['final_output'] ?? $output;
     }
 
     return [
@@ -154,6 +164,7 @@ class CmeshPushContentService {
       'output' => $output,
       'command' => $process_info['command'],
       'started' => $process_info['started'],
+      'completed' => $process_info['completed'] ?? NULL,
       'pid' => $process_info['pid'],
     ];
   }
@@ -187,6 +198,19 @@ class CmeshPushContentService {
    *   Process information array.
    */
   protected function cleanup(array $process_info) {
+    $this->cleanupFiles($process_info);
+    
+    // Clear state.
+    $this->state->delete('cmesh_push_content.current');
+  }
+
+  /**
+   * Clean up temporary files only (keeps state).
+   *
+   * @param array $process_info
+   *   Process information array.
+   */
+  protected function cleanupFiles(array $process_info) {
     // Delete temporary files.
     if (!empty($process_info['output_file']) && file_exists($process_info['output_file'])) {
       @unlink($process_info['output_file']);
@@ -197,9 +221,6 @@ class CmeshPushContentService {
     if (!empty($process_info['script_file']) && file_exists($process_info['script_file'])) {
       @unlink($process_info['script_file']);
     }
-
-    // Clear state.
-    $this->state->delete('cmesh_push_content.current');
   }
 
   /**
@@ -213,6 +234,17 @@ class CmeshPushContentService {
       exec('kill ' . escapeshellarg($process_info['pid']));
       
       // Clean up.
+      $this->cleanup($process_info);
+    }
+  }
+
+  /**
+   * Clear the stored state and output.
+   */
+  public function clearState() {
+    $process_info = $this->state->get('cmesh_push_content.current');
+    
+    if ($process_info) {
       $this->cleanup($process_info);
     }
   }

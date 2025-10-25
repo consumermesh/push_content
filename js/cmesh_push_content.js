@@ -41,7 +41,7 @@
           dataType: 'json',
           cache: false,
           success: function (data) {
-            console.log('Status check:', data.is_running ? 'Running' : 'Not running');
+            console.log('Status check:', data.is_running ? 'Running' : (data.completed ? 'Completed' : 'Not running'));
             
             // Update output textarea
             var $output = $('#command-output');

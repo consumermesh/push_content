@@ -1,0 +1,5 @@
+# Ignore real environment config files (contain sensitive data)
+*.env.inc
+
+# Keep example files
+!*.env.inc.example

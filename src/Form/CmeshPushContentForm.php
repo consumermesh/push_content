@@ -88,6 +88,18 @@ class CmeshPushContentForm extends FormBase {
                        '</div>',
         ];
       }
+      elseif (isset($status['completed'])) {
+        $duration = $status['completed'] - $status['started'];
+        $form['status_container']['status'] = [
+          '#markup' => '<div class="messages messages--status">' .
+                       $this->t('Command completed successfully!') .
+                       '<br>Command: ' . $status['command'] .
+                       '<br>Started: ' . date('Y-m-d H:i:s', $status['started']) .
+                       '<br>Completed: ' . date('Y-m-d H:i:s', $status['completed']) .
+                       '<br>Duration: ' . $duration . ' seconds' .
+                       '</div>',
+        ];
+      }
     }
 
     $form['output_container'] = [
@@ -123,6 +135,20 @@ class CmeshPushContentForm extends FormBase {
           'effect' => 'fade',
         ],
         '#attributes' => ['class' => ['button--danger']],
+      ];
+    }
+    elseif ($status && isset($status['completed'])) {
+      // Command completed - show Clear Output button
+      $form['actions']['clear'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Clear Output'),
+        '#submit' => ['::clearOutput'],
+        '#ajax' => [
+          'callback' => '::ajaxRebuildForm',
+          'wrapper' => 'cmesh-push-content-form',
+          'effect' => 'fade',
+        ],
+        '#attributes' => ['class' => ['button']],
       ];
     }
     else {
@@ -218,6 +244,15 @@ class CmeshPushContentForm extends FormBase {
   public function stopCommand(array &$form, FormStateInterface $form_state) {
     $this->commandExecutor->stopCommand();
     $this->messenger()->addStatus($this->t('Command stopped.'));
+    $form_state->setRebuild(TRUE);
+  }
+
+  /**
+   * Clear output submit handler.
+   */
+  public function clearOutput(array &$form, FormStateInterface $form_state) {
+    $this->commandExecutor->clearState();
+    $this->messenger()->addStatus($this->t('Output cleared.'));
     $form_state->setRebuild(TRUE);
   }
 
