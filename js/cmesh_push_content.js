@@ -53,16 +53,28 @@
               outputElement.scrollTop = outputElement.scrollHeight;
             }
 
+            // Check what buttons are currently visible
+            var hasStopButton = $('#edit-stop').length > 0;
+
             // If command is running, ensure we're polling
             if (data.is_running) {
               if (pollInterval === null) {
                 startPolling();
               }
             } else {
-              // Command not running
+              // Command not running (completed or never started)
               if (pollInterval !== null) {
                 // Was polling but command finished
+                console.log('Command finished, stopping polling');
                 stopPolling();
+                
+                // If we still see the Stop button, the form needs to refresh
+                // to show the completion message and Clear Output button
+                if (hasStopButton) {
+                  console.log('Triggering form refresh to show completion status');
+                  // Click the hidden refresh button to trigger AJAX form rebuild
+                  $('#refresh-trigger').click();
+                }
               }
             }
           },

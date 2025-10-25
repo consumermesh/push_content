@@ -56,10 +56,27 @@ class CmeshPushContentForm extends FormBase {
     $form['#attached']['library'][] = 'cmesh_push_content/cmesh_push_content';
     $form['#attached']['drupalSettings']['cmeshPushContent']['statusUrl'] = Url::fromRoute('cmesh_push_content.status')->toString();
     $form['#attached']['drupalSettings']['cmeshPushContent']['executeUrl'] = Url::fromRoute('cmesh_push_content.execute')->toString();
+    $form['#attached']['drupalSettings']['cmeshPushContent']['isRunning'] = ($status && $status['is_running']) ? TRUE : FALSE;
+    $form['#attached']['drupalSettings']['cmeshPushContent']['isCompleted'] = ($status && isset($status['completed'])) ? TRUE : FALSE;
 
     // Add wrapper for AJAX
     $form['#prefix'] = '<div id="cmesh-push-content-form">';
     $form['#suffix'] = '</div>';
+
+    // Add hidden button to trigger form refresh when command completes
+    $form['refresh_trigger'] = [
+      '#type' => 'submit',
+      '#value' => 'Refresh',
+      '#submit' => ['::refreshForm'],
+      '#ajax' => [
+        'callback' => '::ajaxRebuildForm',
+        'wrapper' => 'cmesh-push-content-form',
+      ],
+      '#attributes' => [
+        'style' => 'display: none;',
+        'id' => 'refresh-trigger',
+      ],
+    ];
 
     // Store which command to execute in form state
     $form['selected_command'] = [
@@ -253,6 +270,14 @@ class CmeshPushContentForm extends FormBase {
   public function clearOutput(array &$form, FormStateInterface $form_state) {
     $this->commandExecutor->clearState();
     $this->messenger()->addStatus($this->t('Output cleared.'));
+    $form_state->setRebuild(TRUE);
+  }
+
+  /**
+   * Refresh form submit handler (triggered by JS when status changes).
+   */
+  public function refreshForm(array &$form, FormStateInterface $form_state) {
+    // Just rebuild the form to show updated status
     $form_state->setRebuild(TRUE);
   }
 
