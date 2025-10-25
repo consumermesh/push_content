@@ -58,11 +58,17 @@ class SystemdCommandExecutorService {
 
     $org = $matches[1];
     $name = $matches[2];
-    $instance = "{$org}-{$name}";
+    
+    // Use colon as delimiter (better than dash for names with dashes)
+    $instance = "{$org}:{$name}";
     $service_name = "cmesh-build@{$instance}";
 
+    // Escape the instance name for systemctl (colon needs escaping in systemd)
+    $escaped_instance = str_replace(':', '\\:', $instance);
+    $escaped_service = "cmesh-build@{$escaped_instance}";
+
     // Start the systemd service
-    $start_command = 'systemctl start ' . escapeshellarg($service_name) . ' 2>&1';
+    $start_command = 'systemctl start ' . escapeshellarg($escaped_service) . ' 2>&1';
     exec($start_command, $output, $return);
 
     if ($return !== 0) {
@@ -73,11 +79,7 @@ class SystemdCommandExecutorService {
     usleep(500000); // 500ms
 
     // Get the log file path
-    // Format: /var/log/cmesh/build-{instance}-{timestamp}.log
-    // We'll track the newest log file
-    $log_pattern = "/var/log/cmesh/build-{$instance}-*.log";
-    $log_files = glob($log_pattern);
-    $log_file = !empty($log_files) ? end($log_files) : "/var/log/cmesh/build-{$instance}.log";
+    $log_file = "/var/log/cmesh/build-{$instance}.log";
 
     $process_id = uniqid('systemd_', TRUE);
 
@@ -85,7 +87,7 @@ class SystemdCommandExecutorService {
     $this->state->set('cmesh_push_content.current', [
       'process_id' => $process_id,
       'command' => $command,
-      'service_name' => $service_name,
+      'service_name' => $escaped_service,
       'instance' => $instance,
       'log_file' => $log_file,
       'started' => time(),

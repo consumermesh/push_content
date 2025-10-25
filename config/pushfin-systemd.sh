@@ -2,7 +2,8 @@
 
 # Systemd wrapper for pushfin.sh
 # Parses the instance name and calls the actual script
-# Instance format: org-name (e.g., mars-mpvg)
+# Instance format: org:name (e.g., mars:mpvg or ramsalt:playground)
+# Note: Using colon as delimiter since names can contain dashes
 
 set -e  # Exit on error
 set -u  # Exit on undefined variable
@@ -14,15 +15,22 @@ if [[ -z "$INSTANCE" ]]; then
     exit 1
 fi
 
-# Split instance into org and name
-# Format: org-name becomes -o org -n name
-if [[ "$INSTANCE" =~ ^([^-]+)-(.+)$ ]]; then
+# Split instance into org and name using colon delimiter
+# Format: org:name becomes -o org -n name
+if [[ "$INSTANCE" =~ ^([^:]+):(.+)$ ]]; then
     ORG="${BASH_REMATCH[1]}"
     NAME="${BASH_REMATCH[2]}"
 else
-    echo "Error: Invalid instance format: $INSTANCE" >&2
-    echo "Expected format: org-name (e.g., mars-mpvg)" >&2
-    exit 1
+    # Fallback: try dash delimiter (split on FIRST dash only)
+    if [[ "$INSTANCE" =~ ^([^-]+)-(.+)$ ]]; then
+        ORG="${BASH_REMATCH[1]}"
+        NAME="${BASH_REMATCH[2]}"
+    else
+        echo "Error: Invalid instance format: $INSTANCE" >&2
+        echo "Expected format: org:name or org-name" >&2
+        echo "Examples: mars:mpvg, ramsalt:playground, mars-test" >&2
+        exit 64  # EX_USAGE
+    fi
 fi
 
 echo "=== Cmesh Build Started ==="
@@ -48,4 +56,6 @@ fi
 
 # Execute the actual build script
 echo "Executing: /opt/cmesh/scripts/pushfin.sh -o '$ORG' -n '$NAME'"
+echo ""
+
 exec /opt/cmesh/scripts/pushfin.sh -o "$ORG" -n "$NAME"
