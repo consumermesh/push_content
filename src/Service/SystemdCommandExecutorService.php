@@ -53,13 +53,13 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
   public function executeCommand($command) {
     // Log the incoming command for debugging
     \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Received command: @cmd', ['@cmd' => $command]);
-    
+
     // Parse command to extract org and name
     // Handle various formats:
     // - /path/to/script -o org -n name
     // - /path/to/script -o 'org' -n 'name'
     // - '/path/to/script' -o 'org' -n 'name' (escapeshellarg format)
-    
+
     // Try to match -o and -n flags with their values
     if (!preg_match('/-o\s+[\'"]?([^\s\'"]+)[\'"]?\s+-n\s+[\'"]?([^\s\'"]+)[\'"]?/', $command, $matches)) {
       $error = 'Could not parse command for org and name. Command format should be: script -o ORG -n NAME. Received: ' . $command;
@@ -69,12 +69,12 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
 
     $org = $matches[1];
     $name = $matches[2];
-    
+
     \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Parsed org=@org, name=@name', [
       '@org' => $org,
       '@name' => $name,
     ]);
-    
+
     // Use colon as delimiter (better than dash for names with dashes)
     $instance = "{$org}:{$name}";
     $service_name = "cmesh-build@{$instance}";
@@ -93,12 +93,10 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
       \Drupal::logger('cmesh_push_content')->error($error);
       throw new \Exception($error);
     }
-    
+
     \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Service started successfully');
     }
 
-    // Give systemd a moment to start the service
-    usleep(500000); // 500ms
 
     // Get the log file path
     $log_file = "/var/log/cmesh/build-{$instance}.log";
