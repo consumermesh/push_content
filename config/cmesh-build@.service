@@ -3,8 +3,7 @@ Description=Cmesh Build for %i
 After=network.target
 
 [Service]
-Type=oneshot
-
+Type=simple
 # User and group - adjust for your system
 # Arch Linux: http
 # Debian/Ubuntu: www-data
@@ -17,7 +16,7 @@ Environment="PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
 Environment="HOME=/tmp"
 Environment="NODE_ENV=production"
 
-# The command to execute
+# The command to execute (runs asynchronously)
 ExecStart=/opt/cmesh/scripts/pushfin-systemd.sh %i
 
 # Logging
@@ -31,7 +30,7 @@ CPUQuota=400%%
 TimeoutStartSec=900
 TimeoutStopSec=60
 
-# Restart policy
+# Restart policy - no automatic restarts
 Restart=no
 
 [Install]
