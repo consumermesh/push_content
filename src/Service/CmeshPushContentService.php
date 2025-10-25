@@ -47,6 +47,11 @@ class CmeshPushContentService {
    *   Array containing process info.
    */
   public function executeCommand($command) {
+    // Increase PHP limits for long-running commands
+    @ini_set('memory_limit', '2048M');
+    @ini_set('max_execution_time', '900');
+    @set_time_limit(900);
+    
     $process_id = uniqid('cmd_', TRUE);
     $temp_dir = $this->fileSystem->getTempDirectory();
     $output_file = $temp_dir . '/' . $process_id . '_output.log';

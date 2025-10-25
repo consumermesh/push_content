@@ -211,15 +211,23 @@ class CmeshPushContentForm extends FormBase {
     $envKey = $trigger['#env_key'];
 
     $inc = dirname(__DIR__, 2) . "/config/{$envKey}.env.inc";
-    $org = $name = NULL;
+    
+    // Default values
+    $org = 'mars';
+    $name = 'mpvg';
+    $script = '/opt/cmesh/scripts/pushfin.sh';  // Default script
+    
+    // Include the environment file if it exists
     if (is_file($inc)) {
-        ob_start();        // Capture output
-        include $inc;      // Include file
-        ob_end_clean();    // Discard captured output
+      // Use output buffering to prevent any output from the included file
+      ob_start();
+      include $inc;
+      ob_end_clean();
     }
 
     $command = sprintf(
-      '/opt/cmesh/scripts/pushfin.sh -o %s -n %s',
+      '%s -o %s -n %s',
+      escapeshellarg($script),
       escapeshellarg($org),
       escapeshellarg($name)
     );
