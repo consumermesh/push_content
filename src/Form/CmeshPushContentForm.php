@@ -5,7 +5,7 @@ namespace Drupal\cmesh_push_content\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
-use Drupal\cmesh_push_content\Service\CmeshPushContentService;
+use Drupal\cmesh_push_content\Service\CommandExecutorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -16,17 +16,17 @@ class CmeshPushContentForm extends FormBase {
   /**
    * The command executor service.
    *
-   * @var \Drupal\cmesh_push_content\Service\CmeshPushContentService
+   * @var \Drupal\cmesh_push_content\Service\CommandExecutorInterface
    */
   protected $commandExecutor;
 
   /**
    * Constructs a CmeshPushContentForm object.
    *
-   * @param \Drupal\cmesh_push_content\Service\CmeshPushContentService $command_executor
+   * @param \Drupal\cmesh_push_content\Service\CommandExecutorInterface $command_executor
    *   The command executor service.
    */
-  public function __construct(CmeshPushContentService $command_executor) {
+  public function __construct(CommandExecutorInterface $command_executor) {
     $this->commandExecutor = $command_executor;
   }
 

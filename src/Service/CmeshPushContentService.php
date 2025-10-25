@@ -7,8 +7,11 @@ use Drupal\Core\State\StateInterface;
 
 /**
  * Service for executing commands and tracking their state.
+ *
+ * Note: This service may not work properly with PHP-FPM due to process
+ * isolation. For PHP-FPM environments, use SystemdCommandExecutorService.
  */
-class CmeshPushContentService {
+class CmeshPushContentService implements CommandExecutorInterface {
 
   /**
    * The file system service.

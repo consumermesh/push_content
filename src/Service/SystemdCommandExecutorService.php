@@ -12,7 +12,7 @@ use Drupal\Core\State\StateInterface;
  * them from the PHP-FPM process. This solves issues where PHP-FPM's
  * process isolation prevents background command execution.
  */
-class SystemdCommandExecutorService {
+class SystemdCommandExecutorService implements CommandExecutorInterface {
 
   /**
    * The file system service.
@@ -51,28 +51,50 @@ class SystemdCommandExecutorService {
    *   Array containing process info.
    */
   public function executeCommand($command) {
+    // Log the incoming command for debugging
+    \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Received command: @cmd', ['@cmd' => $command]);
+    
     // Parse command to extract org and name
-    if (!preg_match('/-o\s+\'?([^\'\\s]+)\'?\s+-n\s+\'?([^\'\\s]+)\'?/', $command, $matches)) {
-      throw new \Exception('Could not parse command for org and name');
+    // Handle various formats:
+    // - /path/to/script -o org -n name
+    // - /path/to/script -o 'org' -n 'name'
+    // - '/path/to/script' -o 'org' -n 'name' (escapeshellarg format)
+    
+    // Try to match -o and -n flags with their values
+    if (!preg_match('/-o\s+[\'"]?([^\s\'"]+)[\'"]?\s+-n\s+[\'"]?([^\s\'"]+)[\'"]?/', $command, $matches)) {
+      $error = 'Could not parse command for org and name. Command format should be: script -o ORG -n NAME. Received: ' . $command;
+      \Drupal::logger('cmesh_push_content')->error($error);
+      throw new \Exception($error);
     }
 
     $org = $matches[1];
     $name = $matches[2];
     
+    \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Parsed org=@org, name=@name', [
+      '@org' => $org,
+      '@name' => $name,
+    ]);
+    
     // Use colon as delimiter (better than dash for names with dashes)
     $instance = "{$org}:{$name}";
     $service_name = "cmesh-build@{$instance}";
 
-    // Escape the instance name for systemctl (colon needs escaping in systemd)
-    $escaped_instance = str_replace(':', '\\:', $instance);
-    $escaped_service = "cmesh-build@{$escaped_instance}";
+    \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Starting service: @service', [
+      '@service' => $service_name,
+    ]);
 
     // Start the systemd service
-    $start_command = 'systemctl start ' . escapeshellarg($escaped_service) . ' 2>&1';
+    // Note: systemctl handles special characters in instance names
+    $start_command = 'systemctl start ' . escapeshellarg($service_name) . ' 2>&1';
     exec($start_command, $output, $return);
 
     if ($return !== 0) {
-      throw new \Exception('Failed to start systemd service: ' . implode("\n", $output));
+      $error = 'Failed to start systemd service: ' . implode("\n", $output);
+      \Drupal::logger('cmesh_push_content')->error($error);
+      throw new \Exception($error);
+    }
+    
+    \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Service started successfully');
     }
 
     // Give systemd a moment to start the service
