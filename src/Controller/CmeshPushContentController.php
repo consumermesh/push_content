@@ -3,10 +3,10 @@
 namespace Drupal\cmesh_push_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\cmesh_push_content\Service\CmeshPushContentService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Drupal\cmesh_push_content\Service\CommandExecutorInterface;
 
 /**
  * Controller for command executor AJAX endpoints.
@@ -16,17 +16,17 @@ class CmeshPushContentController extends ControllerBase {
   /**
    * The command executor service.
    *
-   * @var \Drupal\cmesh_push_content\Service\CmeshPushContentService
+   * @var \Drupal\cmesh_push_content\Service\CommandExecutorInterface
    */
   protected $commandExecutor;
 
   /**
    * Constructs a CmeshPushContentController object.
    *
-   * @param \Drupal\cmesh_push_content\Service\CmeshPushContentService $command_executor
+   * @param \Drupal\cmesh_push_content\Service\CommandExecutorInterface $command_executor
    *   The command executor service.
    */
-  public function __construct(CmeshPushContentService $command_executor) {
+  public function __construct(CommandExecutorInterface $command_executor) {
     $this->commandExecutor = $command_executor;
   }
 
@@ -50,7 +50,7 @@ class CmeshPushContentController extends ControllerBase {
    */
   public function execute(Request $request) {
     $command = $request->request->get('command');
-    
+
     if (empty($command)) {
       return new JsonResponse([
         'error' => 'No command provided',
