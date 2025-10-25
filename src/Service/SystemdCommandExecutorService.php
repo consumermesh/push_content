@@ -104,7 +104,7 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
     $this->state->set('cmesh_push_content.current', [
       'process_id' => $process_id,
       'command' => $command,
-      'service_name' => $escaped_service,
+      'service_name' => $service_name,
       'instance' => $instance,
       'log_file' => $log_file,
       'started' => time(),
