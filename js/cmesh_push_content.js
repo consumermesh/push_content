@@ -66,7 +66,7 @@
               var hasStopButton = $('[data-drupal-selector="edit-stop"]').length > 0;
               if (hasStopButton) {
                 console.log('Stop button still visible, triggering form refresh');
-                $('[data-drupal-selector="refresh-trigger"]').click();
+                $('#refresh-trigger').click();
               }
             }
           },
