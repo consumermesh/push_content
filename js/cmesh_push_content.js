@@ -138,7 +138,7 @@
       $(document).ajaxComplete(function(event, xhr, settings) {
         // Check if this was our form submission
         if (settings.url && settings.url.indexOf('/admin/config/system/cmesh-push-content') !== -1) {
-          console.log('Form submitted via AJAX');
+          console.log('Form submitted via AJAX', $('#edit-stop').length, {pollInterval});
           
           // Wait a moment for the DOM to update
           setTimeout(function() {
