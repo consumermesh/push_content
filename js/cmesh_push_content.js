@@ -1,11 +1,12 @@
 (function ($, Drupal, drupalSettings) {
   'use strict';
 
-  // VERSION 3.3 - Fixed polling stop logic
+  // VERSION 3.4 - Fixed circular polling logic
   // Global state to track if we've already initialized
   var initialized = false;
   var pollInterval = null;
   var isPolling = false;
+  var lastIsRunning = null; // Track last known running state
 
   Drupal.behaviors.cmeshPushContent = {
     attach: function (context, settings) {
@@ -42,6 +43,9 @@
           cache: false,
           success: function (data) {
             console.log('Status check:', data.is_running ? 'Running' : 'Not running', 'Output length:', (data.output || '').length);
+            
+            // Store the running state
+            lastIsRunning = data.is_running;
             
             // Update output textarea if there's content
             var $output = $('#command-output');
@@ -109,6 +113,8 @@
       // Listen for the Push button click to start polling
       $form.on('click', '[data-drupal-selector="edit-submit"]', function() {
         console.log('Push button clicked, will start polling after form submission');
+        // Reset the last running state since we're starting a new command
+        lastIsRunning = true;
         // Start polling after a short delay to allow the form to submit
         setTimeout(function() {
           console.log('Starting polling after button click');
@@ -120,14 +126,21 @@
       $(document).ajaxComplete(function(event, xhr, settings) {
         // Check if this was our form submission
         if (settings.url && settings.url.indexOf('/admin/config/system/cmesh-push-content') !== -1) {
-          console.log('Form submitted via AJAX');
+          console.log('Form submitted via AJAX, lastIsRunning:', lastIsRunning);
           
           // Wait a moment for the DOM to update
           setTimeout(function() {
-            // If Stop button now exists and we're not already polling, start
-            if ($('[data-drupal-selector="edit-stop"]').length > 0 && pollInterval === null) {
-              console.log('Stop button detected after submission, starting polling');
+            // Only start polling if:
+            // 1. Stop button exists AND
+            // 2. We're not already polling AND
+            // 3. Last known state was running (or unknown/null on initial load)
+            var hasStopButton = $('[data-drupal-selector="edit-stop"]').length > 0;
+            
+            if (hasStopButton && pollInterval === null && lastIsRunning !== false) {
+              console.log('Stop button detected and command should be running, starting polling');
               startPolling();
+            } else if (hasStopButton && lastIsRunning === false) {
+              console.log('Stop button exists but command is not running - not starting polling (form refresh in progress)');
             }
           }, 500);
         }
@@ -146,6 +159,7 @@
           clearInterval(pollInterval);
           pollInterval = null;
         }
+        lastIsRunning = null;
         initialized = false;
       }
     }
