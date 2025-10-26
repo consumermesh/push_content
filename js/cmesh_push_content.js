@@ -1,7 +1,7 @@
 (function ($, Drupal, drupalSettings) {
   'use strict';
 
-  // VERSION 3.1 - Start polling on button click
+  // VERSION 3.2 - Fixed button selectors using data-drupal-selector
   // Global state to track if we've already initialized
   var initialized = false;
   var pollInterval = null;
@@ -55,7 +55,7 @@
             }
 
             // Check if we have the stop button (indicates command is running)
-            var hasStopButton = $('#edit-stop').length > 0;
+            var hasStopButton = $('[data-drupal-selector="edit-stop"]').length > 0;
 
             // If command WAS running but now stopped
             if (wasRunning && !data.is_running) {
@@ -66,7 +66,7 @@
               // If we still see the Stop button, refresh the form
               if (hasStopButton) {
                 console.log('Triggering form refresh to show completion status');
-                $('#refresh-trigger').click();
+                $('[data-drupal-selector="refresh-trigger"]').click();
               }
             }
             
@@ -96,7 +96,6 @@
        * Start polling for status updates.
        */
       function startPolling() {
-        console.log('Called startPolling', {pollInterval});
         if (pollInterval === null) {
           console.log('Starting polling (3 second interval)...');
           wasRunning = true;
@@ -119,13 +118,13 @@
       }
 
       // Only check status on page load if Stop button exists (command already running)
-      if ($('#edit-stop').length > 0) {
+      if ($('[data-drupal-selector="edit-stop"]').length > 0) {
         console.log('Stop button found - command is running, starting polling');
         startPolling();
       }
 
       // Listen for the Push button click to start polling
-      $form.on('click', '#edit-submit', function() {
+      $form.on('click', '[data-drupal-selector="edit-submit"]', function() {
         console.log('Push button clicked, will start polling after form submission');
         // Start polling after a short delay to allow the form to submit
         setTimeout(function() {
@@ -138,12 +137,12 @@
       $(document).ajaxComplete(function(event, xhr, settings) {
         // Check if this was our form submission
         if (settings.url && settings.url.indexOf('/admin/config/system/cmesh-push-content') !== -1) {
-          console.log('Form submitted via AJAX', $('#edit-stop').length, {pollInterval});
+          console.log('Form submitted via AJAX');
           
           // Wait a moment for the DOM to update
           setTimeout(function() {
             // If Stop button now exists and we're not already polling, start
-            if ($('#edit-stop').length > 0 && pollInterval === null) {
+            if ($('[data-drupal-selector="edit-stop"]').length > 0 && pollInterval === null) {
               console.log('Stop button detected after submission, starting polling');
               startPolling();
             }
