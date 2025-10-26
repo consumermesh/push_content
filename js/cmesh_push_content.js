@@ -1,12 +1,11 @@
 (function ($, Drupal, drupalSettings) {
   'use strict';
 
-  // VERSION 3.2 - Fixed button selectors using data-drupal-selector
+  // VERSION 3.3 - Fixed polling stop logic
   // Global state to track if we've already initialized
   var initialized = false;
   var pollInterval = null;
   var isPolling = false;
-  var wasRunning = false; // Track if we were previously running
 
   Drupal.behaviors.cmeshPushContent = {
     attach: function (context, settings) {
@@ -42,7 +41,7 @@
           dataType: 'json',
           cache: false,
           success: function (data) {
-            console.log('Status check:', data.is_running ? 'Running' : 'Not running');
+            console.log('Status check:', data.is_running ? 'Running' : 'Not running', 'Output length:', (data.output || '').length);
             
             // Update output textarea if there's content
             var $output = $('#command-output');
@@ -54,32 +53,17 @@
               outputElement.scrollTop = outputElement.scrollHeight;
             }
 
-            // Check if we have the stop button (indicates command is running)
-            var hasStopButton = $('[data-drupal-selector="edit-stop"]').length > 0;
-
-            // If command WAS running but now stopped
-            if (wasRunning && !data.is_running) {
-              console.log('Command finished, stopping polling');
+            // If command is not running, stop polling
+            if (!data.is_running && pollInterval !== null) {
+              console.log('Command not running, stopping polling');
               stopPolling();
-              wasRunning = false;
               
-              // If we still see the Stop button, refresh the form
+              // Check if we need to refresh the form to show completion status
+              var hasStopButton = $('[data-drupal-selector="edit-stop"]').length > 0;
               if (hasStopButton) {
-                console.log('Triggering form refresh to show completion status');
+                console.log('Stop button still visible, triggering form refresh');
                 $('[data-drupal-selector="refresh-trigger"]').click();
               }
-            }
-            
-            // Update tracking state
-            if (data.is_running) {
-              wasRunning = true;
-            }
-
-            // Stop polling if command is not running and we have no output
-            if (!data.is_running && !data.output && pollInterval !== null) {
-              console.log('No running command and no output, stopping polling');
-              stopPolling();
-              wasRunning = false;
             }
           },
           error: function (xhr, status, error) {
@@ -98,7 +82,6 @@
       function startPolling() {
         if (pollInterval === null) {
           console.log('Starting polling (3 second interval)...');
-          wasRunning = true;
           // Check immediately first
           checkStatus();
           // Then poll every 3 seconds
@@ -163,7 +146,6 @@
           clearInterval(pollInterval);
           pollInterval = null;
         }
-        wasRunning = false;
         initialized = false;
       }
     }
