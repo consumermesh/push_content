@@ -96,6 +96,7 @@
        * Start polling for status updates.
        */
       function startPolling() {
+        console.log('Called startPolling', {pollInterval});
         if (pollInterval === null) {
           console.log('Starting polling (3 second interval)...');
           wasRunning = true;
