@@ -1,7 +1,7 @@
 {
     "name": "consumermesh/cmesh_push_content",
     "description": "Push Content",
-    "type": "project",
+    "type": "drupal-module",
     "minimum-stability": "dev",
     "require": {}
 }
