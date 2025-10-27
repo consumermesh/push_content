@@ -1,0 +1,7 @@
+{
+    "name": "consumermesh/cmesh_push_content",
+    "description": "Push Content",
+    "type": "project",
+    "minimum-stability": "dev",
+    "require": {}
+}
