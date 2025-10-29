@@ -17,14 +17,20 @@ fi
 
 # Split instance into org and name using colon delimiter
 # Format: org:name becomes -o org -n name
-if [[ "$INSTANCE" =~ ^([^:]+):(.+)$ ]]; then
+if [[ "$INSTANCE" =~ ^([^:]+):([^:]+):(.+)$ ]]; then
     ORG="${BASH_REMATCH[1]}"
     NAME="${BASH_REMATCH[2]}"
+    BUCKET="${BASH_REMATCH[3]}"
+elif [[ "$INSTANCE" =~ ^([^:]+):([^:]+)$ ]]; then
+    ORG="${BASH_REMATCH[1]}"
+    NAME="${BASH_REMATCH[2]}"
+    BUCKET=""
 else
     # Fallback: try dash delimiter (split on FIRST dash only)
     if [[ "$INSTANCE" =~ ^([^-]+)-(.+)$ ]]; then
         ORG="${BASH_REMATCH[1]}"
         NAME="${BASH_REMATCH[2]}"
+        BUCKET=""
     else
         echo "Error: Invalid instance format: $INSTANCE" >&2
         echo "Expected format: org:name or org-name" >&2
@@ -55,7 +61,12 @@ if [[ ! -x "/opt/cmesh/scripts/pushfin.sh" ]]; then
 fi
 
 # Execute the actual build script
-echo "Executing: /opt/cmesh/scripts/pushfin.sh -o '$ORG' -n '$NAME'"
-echo ""
-
-exec /opt/cmesh/scripts/pushfin.sh -o "$ORG" -n "$NAME"
+if [[ -n "$BUCKET" ]]; then
+    echo "Executing: /opt/cmesh/scripts/pushfin.sh -o '$ORG' -n '$NAME' -b '$BUCKET'"
+    echo ""
+    exec /opt/cmesh/scripts/pushfin.sh -o "$ORG" -n "$NAME" -b "$BUCKET"
+else
+    echo "Executing: /opt/cmesh/scripts/pushfin.sh -o '$ORG' -n '$NAME'"
+    echo ""
+    exec /opt/cmesh/scripts/pushfin.sh -o "$ORG" -n "$NAME"
+fi

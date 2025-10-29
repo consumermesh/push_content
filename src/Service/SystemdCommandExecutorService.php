@@ -46,6 +46,8 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
    *
    * @param string $command
    *   The command to execute.
+   * @param string|null $bucket_name
+   *   Optional bucket name (for use by the systemd executor).
    *
    * @return array
    *   Array containing process info.
@@ -70,13 +72,19 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
     $org = $matches[1];
     $name = $matches[2];
 
-    \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Parsed org=@org, name=@name', [
-      '@org' => $org,
-      '@name' => $name,
-    ]);
+    // NEW: capture optional -b bucket value
+    $bucket = $bucket_name;          // prefer passed parameter if given
+    if (!$bucket && preg_match('/-b\s+[\'"]?([^\s\'"]+)[\'"]?/', $command, $bmatch)) {
+        $bucket = $bmatch[1];
+    }
 
-    // Use colon as delimiter (better than dash for names with dashes)
-    $instance = "{$org}:{$name}";
+    \Drupal::logger('cmesh_push_content')->info(
+        'SystemdCommandExecutor: Parsed org=@org, name=@name, bucket=@bucket',
+        ['@org' => $org, '@name' => $name, '@bucket' => $bucket ?: '(none)']
+    );
+
+    // build instance exactly as before, but include bucket if present
+    $instance = $bucket ? "{$org}:{$name}:{$bucket}" : "{$org}:{$name}";
     $service_name = "cmesh-build@{$instance}";
 
     \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Starting service: @service', [
