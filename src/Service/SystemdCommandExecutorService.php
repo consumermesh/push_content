@@ -46,8 +46,6 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
    *
    * @param string $command
    *   The command to execute.
-   * @param string|null $bucket_name
-   *   Optional bucket name (for use by the systemd executor).
    *
    * @return array
    *   Array containing process info.
@@ -56,7 +54,7 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
     // Log the incoming command for debugging
     \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Received command: @cmd', ['@cmd' => $command]);
 
-    // Parse command to extract org and name
+    // Parse command to extract org, name, and command key
     // Handle various formats:
     // - /path/to/script -o org -n name
     // - /path/to/script -o 'org' -n 'name'
@@ -72,19 +70,32 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
     $org = $matches[1];
     $name = $matches[2];
 
-    // NEW: capture optional -b bucket value
-    $bucket = $bucket_name;          // prefer passed parameter if given
-    if (!$bucket && preg_match('/-b\s+[\'"]?([^\s\'"]+)[\'"]?/', $command, $bmatch)) {
-        $bucket = $bmatch[1];
+    // Extract command key from script path or detect from command
+    $command_key = 'default';
+    
+    // Try to extract command key from script name
+    if (preg_match('/deploy-([^\.]+)\.sh/', $command, $cmd_match)) {
+      $command_key = $cmd_match[1];
+    } elseif (preg_match('/pushfin.*\.sh/', $command)) {
+      $command_key = 'default';
+    }
+
+    // Capture optional -b bucket value
+    $bucket = '';
+    if (preg_match('/-b\s+[\'"]?([^\s\'"]+)[\'"]?/', $command, $bmatch)) {
+      $bucket = $bmatch[1];
     }
 
     \Drupal::logger('cmesh_push_content')->info(
-        'SystemdCommandExecutor: Parsed org=@org, name=@name, bucket=@bucket',
-        ['@org' => $org, '@name' => $name, '@bucket' => $bucket ?: '(none)']
+        'SystemdCommandExecutor: Parsed org=@org, name=@name, command_key=@command_key, bucket=@bucket',
+        ['@org' => $org, '@name' => $name, '@command_key' => $command_key, '@bucket' => $bucket ?: '(none)']
     );
 
-    // build instance exactly as before, but include bucket if present
-    $instance = $bucket ? "{$org}:{$name}:{$bucket}" : "{$org}:{$name}";
+    // Build instance with encoded format to handle colons in org/name
+    // URL encode colons in org and name to prevent parsing issues
+    $encoded_org = str_replace(':', '%3A', $org);
+    $encoded_name = str_replace(':', '%3A', $name);
+    $instance = "{$encoded_org}:{$encoded_name}:{$command_key}";
     $service_name = "cmesh-build@{$instance}";
 
     \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Starting service: @service', [

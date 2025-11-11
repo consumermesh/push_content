@@ -1,0 +1,171 @@
+#!/bin/bash
+
+# Cloudflare deployment script
+# Usage: deploy-cloudflare.sh -o <org> -n <name> --zone-id <zone_id> --api-token <api_token>
+
+set -e  # Exit on error
+set -u  # Exit on undefined variable
+
+# Default values
+ORG=""
+NAME=""
+ZONE_ID=""
+API_TOKEN=""
+PURGE_CACHE=true
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -o)
+      ORG="$2"
+      shift 2
+      ;;
+    -n)
+      NAME="$2"
+      shift 2
+      ;;
+    --zone-id)
+      ZONE_ID="$2"
+      shift 2
+      ;;
+    --api-token)
+      API_TOKEN="$2"
+      shift 2
+      ;;
+    --no-purge)
+      PURGE_CACHE=false
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: $0 -o <org> -n <name> --zone-id <zone_id> --api-token <api_token> [--no-purge]"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Validate required parameters
+if [[ -z "$ORG" ]] || [[ -z "$NAME" ]] || [[ -z "$ZONE_ID" ]] || [[ -z "$API_TOKEN" ]]; then
+  echo "Error: Missing required parameters"
+  echo "Usage: $0 -o <org> -n <name> --zone-id <zone_id> --api-token <api_token>"
+  exit 1
+fi
+
+echo "=== Cloudflare Deployment Started ==="
+echo "Organization: $ORG"
+echo "Name: $NAME"
+echo "Zone ID: $ZONE_ID"
+echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+echo ""
+
+# Build paths
+BUILD_DIR="/opt/cmesh/builds/$ORG/$NAME"
+DIST_DIR="$BUILD_DIR/dist"
+
+# Check if build directory exists
+if [[ ! -d "$BUILD_DIR" ]]; then
+  echo "Error: Build directory not found: $BUILD_DIR"
+  exit 1
+fi
+
+# Check if dist directory exists
+if [[ ! -d "$DIST_DIR" ]]; then
+  echo "Error: Dist directory not found: $DIST_DIR"
+  exit 1
+fi
+
+echo "Build directory: $BUILD_DIR"
+echo "Dist directory: $DIST_DIR"
+echo ""
+
+# Deploy to Cloudflare Pages (if using Pages)
+if [[ -f "$DIST_DIR/_routes.json" ]] || [[ -f "$DIST_DIR/index.html" ]]; then
+  echo "Deploying to Cloudflare Pages..."
+  
+  # Create a temporary deployment package
+  DEPLOY_PACKAGE="/tmp/cloudflare-deploy-$ORG-$NAME-$(date +%s).tar.gz"
+  cd "$DIST_DIR"
+  tar -czf "$DEPLOY_PACKAGE" .
+  
+  echo "Created deployment package: $DEPLOY_PACKAGE"
+  echo "Package size: $(du -h "$DEPLOY_PACKAGE" | cut -f1)"
+  
+  # Upload to Cloudflare (example using their API)
+  echo "Uploading to Cloudflare..."
+  
+  # This is a placeholder - replace with actual Cloudflare API calls
+  # Example: Upload to Cloudflare Pages
+  response=$(curl -s -X POST \
+    "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects/$PROJECT_NAME/deployments" \
+    -H "Authorization: Bearer $API_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "@{\"package\": \"$DEPLOY_PACKAGE\"}" 2>/dev/null || echo '{"success": false, "errors": [{"message": "API call failed"}]}')
+  
+  # Clean up temporary file
+  rm -f "$DEPLOY_PACKAGE"
+  
+  echo "Cloudflare API response: $response"
+  
+  # Check if deployment was successful
+  if echo "$response" | grep -q '"success": true'; then
+    echo "✓ Successfully deployed to Cloudflare Pages"
+  else
+    echo "✗ Failed to deploy to Cloudflare Pages"
+    echo "Response: $response"
+    exit 1
+  fi
+  
+else
+  echo "Deploying static assets to Cloudflare CDN..."
+  
+  # Deploy static assets to Cloudflare CDN
+  # This would typically involve uploading to Cloudflare R2 or similar storage
+  
+  echo "Uploading assets to Cloudflare storage..."
+  
+  # Placeholder for actual Cloudflare storage upload
+  # You would use Cloudflare's API to upload files to their storage
+  
+  for file in "$DIST_DIR"/*; do
+    if [[ -f "$file" ]]; then
+      filename=$(basename "$file")
+      echo "Uploading $filename..."
+      
+      # Example: Upload to Cloudflare R2 (S3-compatible)
+      # aws s3 cp "$file" "s3://your-bucket/$ORG/$NAME/$filename" \
+      #   --endpoint-url https://your-account.r2.cloudflarestorage.com \
+      #   --region auto
+    fi
+  done
+  
+  echo "✓ Successfully uploaded assets to Cloudflare"
+fi
+
+# Purge Cloudflare cache if requested
+if [[ "$PURGE_CACHE" == "true" ]]; then
+  echo ""
+  echo "Purging Cloudflare cache..."
+  
+  response=$(curl -s -X POST \
+    "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/purge_cache" \
+    -H "Authorization: Bearer $API_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"purge_everything": true}' 2>/dev/null || echo '{"success": false, "errors": [{"message": "API call failed"}]}')
+  
+  if echo "$response" | grep -q '"success": true'; then
+    echo "✓ Successfully purged Cloudflare cache"
+  else
+    echo "✗ Failed to purge Cloudflare cache"
+    echo "Response: $response"
+  fi
+fi
+
+echo ""
+echo "=== Cloudflare Deployment Completed ==="
+echo "Completed at: $(date '+%Y-%m-%d %H:%M:%S')"
+
+# Return success
+exit 0

@@ -169,19 +169,25 @@ class CmeshPushContentForm extends FormBase {
       ];
     }
     else {
+      // Build command buttons for each environment
       foreach ($this->listEnvironments() as $envKey) {
-        $form['actions']["run_$envKey"] = [
-          '#type' => 'submit',
-          '#value' => $this->t('Push to @env', ['@env' => $envKey]),
-          '#submit' => ['::executeEnvCommand'],
-          '#ajax' => [
-            'callback' => '::ajaxRebuildForm',
-            'wrapper' => 'cmesh-push-content-form',
-            'effect' => 'fade',
-          ],
-          '#attributes' => ['class' => ['button', 'button--primary']],
-          '#env_key' => $envKey,
-        ];
+        $commands = $this->getEnvironmentCommands($envKey);
+        foreach ($commands as $command_key => $command_config) {
+          $button_key = "run_{$envKey}_{$command_key}";
+          $form['actions'][$button_key] = [
+            '#type' => 'submit',
+            '#value' => $this->t($command_config['label']),
+            '#submit' => ['::executeEnvCommand'],
+            '#ajax' => [
+              'callback' => '::ajaxRebuildForm',
+              'wrapper' => 'cmesh-push-content-form',
+              'effect' => 'fade',
+            ],
+            '#attributes' => ['class' => ['button', 'button--primary']],
+            '#env_key' => $envKey,
+            '#command_key' => $command_key,
+          ];
+        }
       }
     }
 
@@ -223,19 +229,23 @@ class CmeshPushContentForm extends FormBase {
   }
 
   /**
-   * Submit handler for environment commands.
+   * Get available commands for an environment.
+   *
+   * @param string $envKey
+   *   The environment key.
+   *
+   * @return array
+   *   Array of command configurations.
    */
-  public function executeEnvCommand(array &$form, FormStateInterface $form_state) {
-    $trigger = $form_state->getTriggeringElement();
-    $envKey = $trigger['#env_key'];
-
+  private function getEnvironmentCommands(string $envKey): array {
     $inc = $this->getConfigDirectory() . "/{$envKey}.env.inc";
 
     // Default values
     $org = 'mars';
     $name = 'mpvg';
-    //$script = '/opt/cmesh/scripts/pushfin.sh';  // script is no longer user for env.inc
+    $script = '/opt/cmesh/scripts/pushfin.sh';
     $bucket = '';
+    $custom_commands = [];
 
     // Include the environment file if it exists
     if (is_file($inc)) {
@@ -245,7 +255,13 @@ class CmeshPushContentForm extends FormBase {
       ob_end_clean();
     }
 
-    $command = sprintf(
+    // If custom commands are defined, use them
+    if (!empty($custom_commands) && is_array($custom_commands)) {
+      return $custom_commands;
+    }
+
+    // Otherwise, build the default command
+    $default_command = sprintf(
       '%s -o %s -n %s -b %s',
       escapeshellarg($script),
       escapeshellarg($org),
@@ -253,7 +269,33 @@ class CmeshPushContentForm extends FormBase {
       escapeshellarg($bucket)
     );
 
-    $this->executeCommand($command, "Push to $envKey");
+    return [
+      'default' => [
+        'label' => 'Push to ' . $envKey,
+        'command' => $default_command,
+        'description' => "Push to $envKey",
+      ],
+    ];
+  }
+
+  /**
+   * Submit handler for environment commands.
+   */
+  public function executeEnvCommand(array &$form, FormStateInterface $form_state) {
+    $trigger = $form_state->getTriggeringElement();
+    $envKey = $trigger['#env_key'];
+    $commandKey = $trigger['#command_key'] ?? 'default';
+
+    // Get commands for this environment
+    $commands = $this->getEnvironmentCommands($envKey);
+    
+    if (!isset($commands[$commandKey])) {
+      $this->messenger()->addError($this->t('Invalid command selected.'));
+      return;
+    }
+
+    $command_config = $commands[$commandKey];
+    $this->executeCommand($command_config['command'], $command_config['description']);
     $form_state->setRebuild(TRUE);
   }
 

@@ -15,6 +15,8 @@ See [PERSISTENT_CONFIG.md](PERSISTENT_CONFIG.md) for detailed setup instructions
 ## Features
 
 - Push content to multiple environments (dev, staging, production)
+- **Custom commands support for different CDN providers (Cloudflare, Bunny CDN, AWS S3, etc.)**
+- **Support for organization and site names with colons (e.g., `company:division`)**
 - Environment-specific configuration files
 - Real-time output display with auto-scrolling
 - Background command execution
@@ -35,10 +37,32 @@ The module uses environment-specific configuration files to define push targets:
 Each configuration file defines:
 - `$org` - Organization name
 - `$name` - Environment/site name
-- Optional: `$script` - Custom script path
-- Optional: `$bucket` - Storage bucket name
+- Optional: `$custom_commands` - Array of custom commands for different CDN providers
+- Optional: `$script` - Custom script path (legacy)
+- Optional: `$bucket` - Storage bucket name (legacy)
 
 Configuration files are stored in `sites/default/files/cmesh-config/` for persistence across module updates.
+
+### Custom Commands Support
+
+You can now define multiple custom commands per environment for different CDN providers:
+
+```php
+$custom_commands = [
+  'cloudflare' => [
+    'label' => 'Push to Cloudflare',
+    'command' => '/opt/cmesh/scripts/deploy-cloudflare.sh -o ' . escapeshellarg($org) . ' -n ' . escapeshellarg($name) . ' --zone-id your-zone --api-token $CLOUDFLARE_API_TOKEN',
+    'description' => 'Deploy to Cloudflare CDN',
+  ],
+  'bunny' => [
+    'label' => 'Push to Bunny CDN',
+    'command' => '/opt/cmesh/scripts/deploy-bunny.sh -o ' . escapeshellarg($org) . ' -n ' . escapeshellarg($name) . ' --storage-zone your-storage --access-key $BUNNY_ACCESS_KEY',
+    'description' => 'Deploy to Bunny CDN',
+  ],
+];
+```
+
+See [CUSTOM_COMMANDS_USAGE.md](CUSTOM_COMMANDS_USAGE.md) for detailed configuration instructions.
 
 ## Installation
 
@@ -86,17 +110,17 @@ See [PERSISTENT_CONFIG.md](PERSISTENT_CONFIG.md) for detailed configuration inst
 ## Usage
 
 1. Navigate to the cmesh push content interface in your Drupal admin
-2. You will see buttons for each configured environment:
-   - "Push to dev" (if dev.env.inc exists)
-   - "Push to staging" (if staging.env.inc exists)
-   - "Push to prod" (if prod.env.inc exists)
-3. Click the button for your target environment
+2. You will see buttons for each configured environment and custom command:
+   - Basic configuration: "Push to dev", "Push to staging", "Push to prod"
+   - Custom commands: Multiple buttons per environment (e.g., "Push to Cloudflare", "Push to Bunny CDN", etc.)
+3. Click the button for your target environment and CDN provider
 4. The command will execute in the background
 5. Real-time output will appear in the textarea
 6. You can stop running commands or clear completed output
 
 ## Customizing Commands
 
+### Default Behavior
 The module executes the following command for each environment:
 ```bash
 /opt/cmesh/scripts/pushfin.sh -o '<org>' -n '<name>' -b '<bucket>'
@@ -104,7 +128,10 @@ The module executes the following command for each environment:
 
 Where `<org>` and `<name>` are read from the corresponding `.env.inc` file.
 
-To add custom environments or modify command behavior, edit the `CmeshPushContentForm.php` file.
+### Custom Commands
+You can define multiple custom commands per environment for different CDN providers. Each command can use different scripts and parameters. See the [Configuration](#configuration) section above and [CUSTOM_COMMANDS_USAGE.md](CUSTOM_COMMANDS_USAGE.md) for detailed instructions.
+
+To add custom environments or modify command behavior, edit the configuration files or create custom deployment scripts.
 
 ## How It Works
 
