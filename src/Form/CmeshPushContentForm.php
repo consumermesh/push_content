@@ -195,12 +195,31 @@ class CmeshPushContentForm extends FormBase {
    *   Array of environment names, e.g. ['dev','staging','prod'].
    */
   private function listEnvironments(): array {
-    $dir = dirname(__DIR__, 2) . '/config';
+    $dir = $this->getConfigDirectory();
     $list = glob("$dir/*.env.inc");
     return array_map(
       fn($f) => basename($f, '.env.inc'),
       $list
     );
+  }
+
+  /**
+   * Get the persistent configuration directory path.
+   *
+   * @return string
+   *   The absolute path to the configuration directory.
+   */
+  private function getConfigDirectory(): string {
+    // Use Drupal's files directory for persistent configuration
+    $files_path = \Drupal::service('file_system')->realpath('public://');
+    $config_dir = $files_path . '/cmesh-config';
+    
+    // Create directory if it doesn't exist
+    if (!is_dir($config_dir)) {
+      \Drupal::service('file_system')->prepareDirectory($config_dir, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY);
+    }
+    
+    return $config_dir;
   }
 
   /**
@@ -210,7 +229,7 @@ class CmeshPushContentForm extends FormBase {
     $trigger = $form_state->getTriggeringElement();
     $envKey = $trigger['#env_key'];
 
-    $inc = dirname(__DIR__, 2) . "/config/{$envKey}.env.inc";
+    $inc = $this->getConfigDirectory() . "/{$envKey}.env.inc";
 
     // Default values
     $org = 'mars';

@@ -1,67 +1,110 @@
-# Command Executor Module for Drupal 10
+# Cmesh Push Content Module for Drupal 10
 
-A Drupal 10 module that allows administrators to execute predefined command-line commands through a web interface with real-time output display.
+A Drupal 10 module that allows administrators to push content to different environments (dev, staging, production) through a web interface with real-time output display.
+
+## 🚨 Important Configuration Update
+
+**Configuration files now persist through module updates!**
+
+Previous versions stored environment configuration files in the module directory, which caused them to be deleted during module updates. This has been fixed by moving configuration to a persistent location.
+
+**New configuration location:** `sites/default/files/cmesh-config/`
+
+See [PERSISTENT_CONFIG.md](PERSISTENT_CONFIG.md) for detailed setup instructions.
 
 ## Features
 
-- Execute predefined shell commands through a web interface
+- Push content to multiple environments (dev, staging, production)
+- Environment-specific configuration files
 - Real-time output display with auto-scrolling
 - Background command execution
 - Process state persistence (survives page refreshes)
 - Automatic cleanup when commands complete
 - Stop running commands
 - Shows command status (running/completed)
+- Persistent configuration (survives module updates)
 
-## Predefined Commands
+## Environment Configuration
 
-The module includes two predefined commands:
+The module uses environment-specific configuration files to define push targets:
 
-1. **System Info Check** - Displays system information including:
-   - Hostname and OS
-   - Kernel version
-   - System uptime
-   - Current date/time
-   - Disk usage
-   - Memory usage
+1. **Development** (`dev.env.inc`) - Push to development environment
+2. **Staging** (`staging.env.inc`) - Push to staging environment  
+3. **Production** (`prod.env.inc`) - Push to production environment
 
-2. **List Temp Directory** - Shows:
-   - Detailed listing of /tmp directory
-   - Disk usage of largest files in /tmp
+Each configuration file defines:
+- `$org` - Organization name
+- `$name` - Environment/site name
+- Optional: `$script` - Custom script path
+- Optional: `$bucket` - Storage bucket name
+
+Configuration files are stored in `sites/default/files/cmesh-config/` for persistence across module updates.
 
 ## Installation
 
 1. Copy the module to your Drupal installation's `modules/custom/` directory
-2. Enable the module: `drush en command_executor -y` or through the admin UI
+2. Enable the module: `drush en cmesh_push_content -y` or through the admin UI
 3. Clear cache: `drush cr`
+4. Set up configuration files (see Configuration section below)
+
+## Configuration
+
+### Initial Setup
+
+1. Create the persistent configuration directory:
+   ```bash
+   mkdir -p sites/default/files/cmesh-config
+   chmod 755 sites/default/files/cmesh-config
+   ```
+
+2. Copy example configuration files:
+   ```bash
+   cp modules/custom/cmesh_push_content/config/*.env.inc.example sites/default/files/cmesh-config/
+   ```
+
+3. Edit each configuration file with your environment settings:
+   - `sites/default/files/cmesh-config/dev.env.inc`
+   - `sites/default/files/cmesh-config/staging.env.inc`
+   - `sites/default/files/cmesh-config/prod.env.inc`
+
+### Configuration File Format
+
+Each `.env.inc` file should follow this format:
+```php
+<?php
+
+/**
+ * Environment configuration.
+ */
+
+$org = 'your-org-name';
+$name = 'your-site-name';
+```
+
+See [PERSISTENT_CONFIG.md](PERSISTENT_CONFIG.md) for detailed configuration instructions and security considerations.
 
 ## Usage
 
-1. Navigate to `/admin/config/system/command-executor`
-2. Click one of the predefined command buttons
-3. The output will appear in real-time in the textarea below
-4. If you navigate away and come back, you'll see if the command is still running
-5. Once the command completes, the logs are automatically cleaned up
+1. Navigate to the cmesh push content interface in your Drupal admin
+2. You will see buttons for each configured environment:
+   - "Push to dev" (if dev.env.inc exists)
+   - "Push to staging" (if staging.env.inc exists)
+   - "Push to prod" (if prod.env.inc exists)
+3. Click the button for your target environment
+4. The command will execute in the background
+5. Real-time output will appear in the textarea
+6. You can stop running commands or clear completed output
 
 ## Customizing Commands
 
-To add or modify commands, edit the `CommandExecutorForm.php` file:
-
-```php
-// Add a new command button
-$form['actions']['command3'] = [
-  '#type' => 'submit',
-  '#value' => $this->t('Your Command Name'),
-  '#submit' => ['::executeCommand3'],
-  '#attributes' => ['class' => ['button', 'button--primary']],
-];
-
-// Add the submit handler
-public function executeCommand3(array &$form, FormStateInterface $form_state) {
-  $command = 'your-command-here';
-  $this->executeCommand($command, 'Your Command Description');
-  $form_state->setRebuild(TRUE);
-}
+The module executes the following command for each environment:
+```bash
+/opt/cmesh/scripts/pushfin.sh -o '<org>' -n '<name>' -b '<bucket>'
 ```
+
+Where `<org>` and `<name>` are read from the corresponding `.env.inc` file.
+
+To add custom environments or modify command behavior, edit the `CmeshPushContentForm.php` file.
 
 ## How It Works
 
@@ -78,43 +121,62 @@ public function executeCommand3(array &$form, FormStateInterface $form_state) {
 
 ### File Structure
 ```
-command_executor/
-├── command_executor.info.yml
-├── command_executor.routing.yml
-├── command_executor.services.yml
-├── command_executor.libraries.yml
+cmesh_push_content/
+├── cmesh_push_content.info.yml
+├── cmesh_push_content.routing.yml
+├── cmesh_push_content.services.yml
+├── cmesh_push_content.libraries.yml
+├── cmesh_push_content.permissions.yml
 ├── src/
 │   ├── Controller/
-│   │   └── CommandExecutorController.php
+│   │   └── CmeshPushContentController.php
 │   ├── Form/
-│   │   └── CommandExecutorForm.php
+│   │   └── CmeshPushContentForm.php
 │   └── Service/
-│       └── CommandExecutorService.php
+│       ├── CmeshPushContentService.php
+│       ├── SystemdCommandExecutorService.php
+│       └── CommandExecutorInterface.php
+├── config/
+│   ├── *.env.inc.example    # Example configuration files
+│   └── README.md            # Configuration documentation
 ├── js/
-│   └── command_executor.js
+│   └── cmesh_push_content.js
 └── css/
-    └── command_executor.css
+    └── cmesh_push_content.css
+```
+
+### Configuration Files Location
+```
+sites/default/files/
+└── cmesh-config/
+    ├── dev.env.inc
+    ├── staging.env.inc
+    └── prod.env.inc
 ```
 
 ## Security Considerations
 
 **WARNING**: This module executes shell commands. Use with caution!
 
-- Only users with "administer site configuration" permission can access the interface
+- Only users with "administer cmesh push content" permission can access the interface
 - Commands are executed with the web server's user permissions
-- Predefined commands reduce security risk compared to free-form input
+- Configuration files contain sensitive environment data - protect them appropriately
+- Configuration files are stored in `sites/default/files/cmesh-config/` and should be protected from web access
 - Consider additional access restrictions in production environments
+- Never commit real configuration files to version control (use `.example` files instead)
 
 ## API Endpoints
 
-- `GET /admin/config/system/command-executor/status` - Get current command status
-- `POST /admin/config/system/command-executor/execute` - Execute a new command
+- `GET /admin/config/content/cmesh-push-content/status` - Get current command status
+- `POST /admin/config/content/cmesh-push-content/execute` - Execute environment push command
 
 ## Requirements
 
-- Drupal 10
+- Drupal 10 or 11
 - PHP exec() function enabled
 - Unix-like operating system (uses `ps` command for process checking)
+- Access to `/opt/cmesh/scripts/pushfin.sh` script
+- Write permissions to `sites/default/files/cmesh-config/` directory
 
 ## License
 
