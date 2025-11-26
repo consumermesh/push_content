@@ -54,7 +54,7 @@ class CmeshPushContentService implements CommandExecutorInterface {
     @ini_set('memory_limit', '2048M');
     @ini_set('max_execution_time', '900');
     @set_time_limit(900);
-    
+
     $process_id = uniqid('cmd_', TRUE);
     $temp_dir = $this->fileSystem->getTempDirectory();
     $output_file = $temp_dir . '/' . $process_id . '_output.log';
@@ -71,17 +71,17 @@ class CmeshPushContentService implements CommandExecutorInterface {
     $script_content .= "echo \"\"\n";
     $script_content .= "echo \"[Command completed with exit code: \$exit_code]\"\n";
     $script_content .= "exit \$exit_code\n";
-    
+
     file_put_contents($script_file, $script_content);
     chmod($script_file, 0755);
-    
+
     // Check if stdbuf is available for unbuffered output
     $has_stdbuf = false;
     exec('which stdbuf 2>/dev/null', $stdbuf_check, $stdbuf_return);
     if ($stdbuf_return === 0 && !empty($stdbuf_check)) {
       $has_stdbuf = true;
     }
-    
+
     // Execute script in background, redirect output to file.
     if ($has_stdbuf) {
       // Use stdbuf to disable buffering for real-time output
@@ -129,6 +129,46 @@ class CmeshPushContentService implements CommandExecutorInterface {
   }
 
   /**
+   * Execute a command via systemd using direct parameters.
+   *
+   * This method provides compatibility with the interface for both
+   * CmeshPushContentService and SystemdCommandExecutorService.
+   * For CmeshPushContentService, it builds the command from parameters
+   * and delegates to executeCommand().
+   *
+   * @param string $org
+   *   The organization name.
+   * @param string $name
+   *   The site name.
+   * @param string $command_key
+   *   The command key (e.g., 'default', 'cloudflare', 'bunny', 'aws').
+   * @param string $bucket
+   *   The bucket name (optional, for AWS S3 deployments).
+   *
+   * @return array
+   *   Array containing process info with keys:
+   *   - process_id: Unique identifier for this process
+   *   - pid: Process ID or instance identifier
+   */
+  public function executeCommandDirect($org, $name, $command_key = 'default', $bucket = '') {
+    // Build the command from parameters
+    $script = '/opt/cmesh/scripts/pushfin.sh';
+
+    // Build the command string with command_key support
+    $command = sprintf(
+      '%s -o %s -n %s -b %s -k %s',
+      escapeshellarg($script),
+      escapeshellarg($org),
+      escapeshellarg($name),
+      escapeshellarg($bucket),
+      escapeshellarg($command_key)
+    );
+
+    // Delegate to the main executeCommand method
+    return $this->executeCommand($command);
+  }
+
+  /**
    * Get the status of the current command.
    *
    * @return array|null
@@ -136,7 +176,7 @@ class CmeshPushContentService implements CommandExecutorInterface {
    */
   public function getStatus() {
     $process_info = $this->state->get('cmesh_push_content.current');
-    
+
     if (!$process_info) {
       return NULL;
     }
@@ -157,7 +197,7 @@ class CmeshPushContentService implements CommandExecutorInterface {
       $process_info['completed'] = time();
       $process_info['final_output'] = $output;
       $this->state->set('cmesh_push_content.current', $process_info);
-      
+
       // Clean up temporary files but keep the state with output
       $this->cleanupFiles($process_info);
     }
@@ -194,7 +234,7 @@ class CmeshPushContentService implements CommandExecutorInterface {
     // Use ps to check if process exists.
     $output = [];
     exec("ps -p " . escapeshellarg($pid), $output);
-    
+
     // If more than 1 line returned, process exists (header + process line).
     return count($output) > 1;
   }
@@ -207,7 +247,7 @@ class CmeshPushContentService implements CommandExecutorInterface {
    */
   protected function cleanup(array $process_info) {
     $this->cleanupFiles($process_info);
-    
+
     // Clear state.
     $this->state->delete('cmesh_push_content.current');
   }
@@ -236,11 +276,11 @@ class CmeshPushContentService implements CommandExecutorInterface {
    */
   public function stopCommand() {
     $process_info = $this->state->get('cmesh_push_content.current');
-    
+
     if ($process_info && !empty($process_info['pid'])) {
       // Kill the process.
       exec('kill ' . escapeshellarg($process_info['pid']));
-      
+
       // Clean up.
       $this->cleanup($process_info);
     }
@@ -251,7 +291,7 @@ class CmeshPushContentService implements CommandExecutorInterface {
    */
   public function clearState() {
     $process_info = $this->state->get('cmesh_push_content.current');
-    
+
     if ($process_info) {
       $this->cleanup($process_info);
     }
