@@ -255,12 +255,21 @@ class CmeshPushContentForm extends FormBase {
       ob_end_clean();
     }
 
-    // If custom commands are defined, use them
+    // If custom commands are defined, use them (they don't need full command strings)
     if (!empty($custom_commands) && is_array($custom_commands)) {
-      return $custom_commands;
+      // Clean up custom commands - remove unnecessary 'command' key
+      $cleaned_commands = [];
+      foreach ($custom_commands as $key => $config) {
+        $cleaned_commands[$key] = [
+          'label' => $config['label'] ?? 'Push to ' . $key,
+          'description' => $config['description'] ?? 'Deploy to ' . $key,
+          'command_key' => $key,  // This is what actually determines the script to run
+        ];
+      }
+      return $cleaned_commands;
     }
 
-    // Otherwise, build the default command
+    // Otherwise, build the default command (legacy behavior for backward compatibility)
     $default_command = sprintf(
       '%s -o %s -n %s -b %s',
       escapeshellarg($script),
@@ -274,6 +283,7 @@ class CmeshPushContentForm extends FormBase {
         'label' => 'Push to ' . $envKey,
         'command' => $default_command,
         'description' => "Push to $envKey",
+        'command_key' => 'default',
       ],
     ];
   }
@@ -295,17 +305,44 @@ class CmeshPushContentForm extends FormBase {
     }
 
     $command_config = $commands[$commandKey];
-    $this->executeCommand($command_config['command'], $command_config['description']);
+    
+    // Get org and name for this environment
+    $org = 'mars';
+    $name = 'mpvg';
+    $bucket = ''; // Default empty bucket
+    $inc = $this->getConfigDirectory() . "/{$envKey}.env.inc";
+    
+    if (is_file($inc)) {
+      ob_start();
+      include $inc;
+      ob_end_clean();
+    }
+    
+    // Use the direct method to avoid building/parsing command strings
+    $result = $this->commandExecutor->executeCommandDirect($org, $name, $commandKey, $bucket);
+    
+    $this->messenger()->addStatus(
+      $this->t('@description started with PID: @pid', [
+        '@description' => $command_config['description'],
+        '@pid' => $result['pid'],
+      ])
+    );
+    
     $form_state->setRebuild(TRUE);
   }
 
   /**
-   * Helper method to execute a command.
+   * Helper method to execute a command (legacy - for backward compatibility).
+   *
+   * This method is deprecated. Use executeCommandDirect() with org, name, and command_key
+   * parameters instead of building command strings.
    *
    * @param string $command
    *   The command to execute.
    * @param string $description
    *   Description of the command for the status message.
+   * 
+   * @deprecated Use executeCommandDirect() instead.
    */
   protected function executeCommand($command, $description) {
     $result = $this->commandExecutor->executeCommand($command);

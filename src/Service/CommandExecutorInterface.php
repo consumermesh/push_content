@@ -21,6 +21,25 @@ interface CommandExecutorInterface {
   public function executeCommand($command);
 
   /**
+   * Execute a command via systemd using direct parameters.
+   *
+   * @param string $org
+   *   The organization name.
+   * @param string $name
+   *   The site name.
+   * @param string $command_key
+   *   The command key (e.g., 'default', 'cloudflare', 'bunny', 'aws').
+   * @param string $bucket
+   *   The bucket name (optional, for AWS S3 deployments).
+   *
+   * @return array
+   *   Array containing process info with keys:
+   *   - process_id: Unique identifier for this process
+   *   - pid: Process ID or instance identifier
+   */
+  public function executeCommandDirect($org, $name, $command_key = 'default', $bucket = '');
+
+  /**
    * Get the status of the current command.
    *
    * @return array|null

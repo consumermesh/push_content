@@ -2,7 +2,7 @@
 
 **Date Created**: 2025-01-11  
 **Status**: Implementation Complete ✅  
-**Last Work**: Colon handling fix for systemd service  
+**Last Work**: Simplified custom commands design - removed redundant command strings from .env.inc  
 
 ## 📋 Current State Summary
 
@@ -13,6 +13,7 @@
    - ✅ Added custom commands support with multiple buttons per environment
    - ✅ Enhanced systemd service with `org:name:command` format
    - ✅ **CRITICAL FIX**: Implemented colon handling for systemd service (URL encoding)
+   - ✅ **MAJOR SIMPLIFICATION**: Removed redundant command strings from `.env.inc` files
 
 2. **CDN Provider Support**
    - ✅ Cloudflare deployment script with API integration
@@ -29,8 +30,48 @@
    - ✅ Systemd parsing test script (`test_systemd_parsing.sh`)
    - ✅ Colon handling test script (`test_colon_handling.php`)
    - ✅ Setup automation script (`setup_custom_commands.sh`)
+   - ✅ **CRITICAL FIX**: Fixed command parsing regex in SystemdCommandExecutorService
 
 ### 🔧 **KEY TECHNICAL FIXES MADE**
+
+#### **Simplified Custom Commands Design (MAJOR)**
+**Problem**: `.env.inc` files contained redundant full command strings that were ignored by `pushfin-systemd.sh`
+
+**Solution**: Removed command building from config files - now just define button labels/descriptions
+```php
+// Before (redundant)
+$custom_commands = [
+  'cloudflare' => [
+    'label' => 'Push to Cloudflare',
+    'command' => '/opt/cmesh/scripts/deploy-cloudflare.sh -o ' . escapeshellarg($org) . ' -n ' . escapeshellarg($name) . ' --zone-id dev-zone --api-token $CLOUDFLARE_API_TOKEN',
+    'description' => 'Deploy to Cloudflare CDN',
+  ],
+];
+
+// After (clean)
+$custom_commands = [
+  'cloudflare' => [
+    'label' => 'Push to Cloudflare',
+    'description' => 'Deploy to Cloudflare CDN',
+  ],
+];
+```
+
+**Result**: Configuration is now simple and clean - just define what buttons you want ✅
+
+#### **Command Parsing Fix (CRITICAL)**
+**Problem**: Regex in SystemdCommandExecutorService failed to parse quoted org/name values from custom commands
+
+**Solution**: Fixed regex pattern to properly handle quoted values
+```php
+// Old regex (broken)
+/-o\s+[\'"]?([^\s\'"]+)[\'"]?\s+-n\s+[\'"]?([^\s\'"]+)[\'"]?/
+
+// New regex (fixed)  
+/-o\s+([\'"]?)([^\1]*)\1\s+-n\s+([\'"]?)([^\3]*)\3/
+```
+
+**Result**: Commands with quoted values like `-o 'my:org' -n 'my:site'` now parse correctly ✅
 
 #### **Colon Handling Fix (CRITICAL)**
 **Problem**: Systemd service uses colon delimiters (`org:name:command`) but org/name with colons broke parsing
@@ -53,9 +94,9 @@ NAME="${NAME_ENCODED//%3A/:}"
 
 ### **Core Implementation Files**
 ```
-src/Form/CmeshPushContentForm.php                    # Custom command parsing logic
-src/Service/SystemdCommandExecutorService.php        # Colon encoding + instance naming
-config/pushfin-systemd.sh                           # Colon decoding + command routing
+src/Form/CmeshPushContentForm.php                    # Simplified command building + removed redundant command parsing
+src/Service/SystemdCommandExecutorService.php        # Colon encoding + instance naming + command parsing fix
+config/pushfin-systemd.sh                           # Colon decoding + command routing + enhanced logging
 ```
 
 ### **Configuration & Examples**
@@ -77,6 +118,9 @@ IMPLEMENTATION_SUMMARY.md                           # Quick overview
 test_systemd_parsing.sh                             # Systemd parsing tests
 test_colon_handling.php                             # Colon handling tests
 setup_custom_commands.sh                            # Setup automation
+test_regex_fix.sh                                   # Regex fix verification
+CUSTOM_COMMAND_FIX.md                               # Documentation of the fix
+SIMPLIFIED_CUSTOM_COMMANDS.md                       # Explanation of the simplified design
 ```
 
 ### **Documentation Updated**
@@ -147,6 +191,9 @@ export AWS_REGION="your-region"
 # Test colon handling specifically
 php test_colon_handling.php
 
+# Test the regex fix
+./test_regex_fix.sh
+
 # Check if your custom commands appear in Drupal admin
 # Navigate to: /admin/config/system/cmesh-push-content
 ```
@@ -159,6 +206,7 @@ When you return, verify these key points:
 - [ ] Multiple buttons appear per environment in Drupal admin
 - [ ] Each button executes the correct custom command
 - [ ] Commands run successfully with proper output
+- [ ] Custom command parameters are correctly passed to deployment scripts
 
 ### **✅ Colon Handling**
 - [ ] Organization names with colons work (e.g., `company:division`)
@@ -205,11 +253,12 @@ chown www-data:www-data /opt/cmesh/scripts/deploy-*.sh  # Adjust for your web se
 2. **Commands not executing**: Verify script permissions and paths
 3. **Colon parsing errors**: Ensure both PHP and bash files are updated
 4. **Environment variable issues**: Check web server environment configuration
+5. **Command parsing issues**: Check logs for regex parsing errors in SystemdCommandExecutorService
 
 ### **Files to Check First**
 If something isn't working, verify these files first:
-1. `src/Service/SystemdCommandExecutorService.php` (colon encoding)
-2. `config/pushfin-systemd.sh` (colon decoding)
+1. `src/Service/SystemdCommandExecutorService.php` (colon encoding + command parsing)
+2. `config/pushfin-systemd.sh` (colon decoding + command routing)
 3. `sites/default/files/cmesh-config/*.env.inc` (your configurations)
 4. `/opt/cmesh/scripts/deploy-*.sh` (script permissions)
 
@@ -221,11 +270,20 @@ systemctl status cmesh-build@your-instance
 # View systemd logs
 journalctl -u cmesh-build@your-instance -f
 
+# View build log files
+tail -f /var/log/cmesh/build-*.log
+
 # Test parsing manually
 ./test_systemd_parsing.sh
 
+# Test the regex fix
+./test_regex_fix.sh
+
 # Check environment variables
 printenv | grep -E "(CLOUDFLARE|BUNNY|AWS)"
+
+# Check Drupal logs for parsing errors
+drush watchdog:show --type=cmesh_push_content
 ```
 
 ---

@@ -42,60 +42,83 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
   }
 
   /**
-   * Execute a command via systemd.
+   * Execute a command via systemd (legacy method - delegates to direct method).
    *
    * @param string $command
-   *   The command to execute.
+   *   The command to execute (parsed to extract parameters).
    *
    * @return array
    *   Array containing process info.
    */
   public function executeCommand($command) {
     // Log the incoming command for debugging
-    \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Received command: @cmd', ['@cmd' => $command]);
+    \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Legacy executeCommand called with: @cmd', ['@cmd' => $command]);
 
-    // Parse command to extract org, name, and command key
-    // Handle various formats:
-    // - /path/to/script -o org -n name
-    // - /path/to/script -o 'org' -n 'name'
-    // - '/path/to/script' -o 'org' -n 'name' (escapeshellarg format)
-
-    // Try to match -o and -n flags with their values
-    if (!preg_match('/-o\s+[\'"]?([^\s\'"]+)[\'"]?\s+-n\s+[\'"]?([^\s\'"]+)[\'"]?/', $command, $matches)) {
+    // Parse command to extract org, name, and command key for backward compatibility
+    if (!preg_match('/-o\s+([\'"]?)([^\1]*)\1\s+-n\s+([\'"]?)([^\3]*)\3/', $command, $matches)) {
       $error = 'Could not parse command for org and name. Command format should be: script -o ORG -n NAME. Received: ' . $command;
       \Drupal::logger('cmesh_push_content')->error($error);
       throw new \Exception($error);
     }
 
-    $org = $matches[1];
-    $name = $matches[2];
+    $org = $matches[2];
+    $name = $matches[4];
 
-    // Extract command key from script path or detect from command
+    // Extract command key from script path
     $command_key = 'default';
-    
-    // Try to extract command key from script name
     if (preg_match('/deploy-([^\.]+)\.sh/', $command, $cmd_match)) {
       $command_key = $cmd_match[1];
     } elseif (preg_match('/pushfin.*\.sh/', $command)) {
       $command_key = 'default';
     }
 
-    // Capture optional -b bucket value
+    // Try to extract bucket parameter for backward compatibility
     $bucket = '';
-    if (preg_match('/-b\s+[\'"]?([^\s\'"]+)[\'"]?/', $command, $bmatch)) {
-      $bucket = $bmatch[1];
+    if (preg_match('/-b\s+([\'"]?)([^\1]*)\1/', $command, $bmatch)) {
+      $bucket = $bmatch[2];
     }
 
-    \Drupal::logger('cmesh_push_content')->info(
-        'SystemdCommandExecutor: Parsed org=@org, name=@name, command_key=@command_key, bucket=@bucket',
-        ['@org' => $org, '@name' => $name, '@command_key' => $command_key, '@bucket' => $bucket ?: '(none)']
-    );
+    // Delegate to the direct method
+    return $this->executeCommandDirect($org, $name, $command_key, $bucket);
+  }
+
+  /**
+   * Execute a command via systemd using direct parameters.
+   *
+   * @param string $org
+   *   The organization name.
+   * @param string $name
+   *   The site name.
+   * @param string $command_key
+   *   The command key (e.g., 'default', 'cloudflare', 'bunny', 'aws').
+   * @param string $bucket
+   *   The bucket name (optional, for AWS S3 deployments).
+   *
+   * @return array
+   *   Array containing process info.
+   */
+  public function executeCommandDirect($org, $name, $command_key = 'default', $bucket = '') {
+    // Log the incoming parameters for debugging
+    \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Direct execution with org=@org, name=@name, command_key=@command_key, bucket=@bucket', [
+      '@org' => $org, 
+      '@name' => $name, 
+      '@command_key' => $command_key,
+      '@bucket' => $bucket ?: '(none)'
+    ]);
 
     // Build instance with encoded format to handle colons in org/name
     // URL encode colons in org and name to prevent parsing issues
     $encoded_org = str_replace(':', '%3A', $org);
     $encoded_name = str_replace(':', '%3A', $name);
-    $instance = "{$encoded_org}:{$encoded_name}:{$command_key}";
+    
+    // Include bucket in instance name if provided (for AWS deployments)
+    if (!empty($bucket)) {
+      $encoded_bucket = str_replace(':', '%3A', $bucket);
+      $instance = "{$encoded_org}:{$encoded_name}:{$command_key}:{$encoded_bucket}";
+    } else {
+      $instance = "{$encoded_org}:{$encoded_name}:{$command_key}";
+    }
+    
     $service_name = "cmesh-build@{$instance}";
 
     \Drupal::logger('cmesh_push_content')->info('SystemdCommandExecutor: Starting service: @service', [
