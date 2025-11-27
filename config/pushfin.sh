@@ -1,7 +1,11 @@
 #!/bin/bash
 
+# Suppress output that might interfere with rsync protocol
+# This is crucial for KeyCDN deployment over SSH
+exec 2>/dev/null  # Redirect stderr during connection phase
+
 if [ "$EUID" -eq 0 ]; then
-    echo "This script should not be run as root. Please run it as a regular user."
+    echo "This script should not be run as root. Please run it as a regular user." >&2
     exit 1
 fi
 
@@ -43,6 +47,9 @@ while getopts ":n:o:b:k:c:s:h" opt; do
 	b )
 	    bucket="$OPTARG"
 	    ;;
+        k )
+            command_key="$OPTARG"
+            ;;
         h )
             show_help
             exit 0
@@ -95,8 +102,13 @@ case "$command_key" in
         ;;
     "keycdn")
         echo "Executing KeyCDN deployment"
+        # Restore stderr for KeyCDN deployment (rsync needs clean protocol)
+        exec 2>&1
         # Set KeyCDN-specific environment variables if needed
         export KEYCDN_PUSH_ZONE="${KEYCDN_PUSH_ZONE:-$bucket}"
+        # Ensure clean shell for rsync
+        unset PROMPT_COMMAND
+        export PS1='$ '
         ;;
     *)
         echo "Unknown command key: $command_key" >&2
@@ -118,8 +130,14 @@ else
 fi
 
 # Build the remote command with all parameters including command_key
-remote_command="sudo -u http bash -xc \"/opt/cmesh/scripts/pushfin.sh -n '$name' -o '$org' -b '$bucketName' -k '$command_key' -c '$client_id' -s '$client_secret'\""
+# Use SSH options to suppress output that might interfere with rsync
+ssh_options="-o StrictHostKeyChecking=no -o LogLevel=ERROR -o BatchMode=yes -o ConnectTimeout=30"
 
-echo "Executing remote command: $remote_command"
-ssh -o StrictHostKeyChecking=no -i /opt/cmesh/scripts/.ssh/id_rsa backend@fin.consumermesh.com "$remote_command" 2>&1
-echo "Remote execution completed!"
+if [ "$command_key" != "keycdn" ]; then
+    # Standard deployment for non-KeyCDN command keys
+    remote_command="sudo -u http bash -xc \"/opt/cmesh/scripts/pushfin.sh -n '$name' -o '$org' -b '$bucketName' -k '$command_key' -c '$client_id' -s '$client_secret'\""
+    
+    echo "Executing remote command: $remote_command"
+    ssh $ssh_options -i /opt/cmesh/scripts/.ssh/id_rsa backend@fin.consumermesh.com "$remote_command" 2>&1
+    echo "Remote execution completed!"
+fi
