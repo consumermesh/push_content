@@ -1,0 +1,47 @@
+cmesh_push_content.page:
+  path: '/admin/config/system/cmesh-push-content'
+  defaults:
+    _form: '\Drupal\cmesh_push_content\Form\CmeshPushContentForm'
+    _title: 'Cmesh Push Content'
+  requirements:
+    _permission: 'cmesh_push_content push_content_dev'
+
+cmesh_push_content.execute:
+  path: '/admin/config/system/cmesh-push-content/execute'
+  defaults:
+    _controller: '\Drupal\cmesh_push_content\Controller\CmeshPushContentController::execute'
+  requirements:
+    _permission: 'cmesh_push_content push_content_dev'
+  methods: [POST]
+
+cmesh_push_content.status:
+  path: '/admin/config/system/cmesh-push-content/status'
+  defaults:
+    _controller: '\Drupal\cmesh_push_content\Controller\CmeshPushContentController::status'
+  requirements:
+    _permission: 'cmesh_push_content push_content_dev'
+  methods: [GET]
+
+cmesh_push_content.api_trigger:
+  path: '/api/cmesh-push-content/trigger'
+  defaults:
+    _controller: '\Drupal\cmesh_push_content\Controller\CmeshPushContentController::trigger'
+  requirements:
+    _permission: 'cmesh_push_content push_content_dev'
+  methods: [POST]
+
+cmesh_push_content.api_status:
+  path: '/api/cmesh-push-content/status'
+  defaults:
+    _controller: '\Drupal\cmesh_push_content\Controller\CmeshPushContentController::apiStatus'
+  requirements:
+    _permission: 'cmesh_push_content push_content_dev'
+  methods: [GET]
+
+cmesh_push_content.api_environments:
+  path: '/api/cmesh-push-content/environments'
+  defaults:
+    _controller: '\Drupal\cmesh_push_content\Controller\CmeshPushContentController::environments'
+  requirements:
+    _permission: 'cmesh_push_content push_content_dev'
+  methods: [GET]

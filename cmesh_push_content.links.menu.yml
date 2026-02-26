@@ -1,0 +1,6 @@
+cmesh_push_content.admin:
+  title: 'Cmesh Push Content'
+  description: 'Execute predefined commands and view real-time output'
+  route_name: cmesh_push_content.page
+  parent: system.admin_config_content
+  weight: 50

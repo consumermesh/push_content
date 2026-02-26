@@ -1,0 +1,27 @@
+# Example .gitignore for persistent configuration
+# 
+# Place this in your Drupal site's files directory to protect config files
+# Location: sites/default/files/cmesh-config/.gitignore
+
+# Ignore all environment configuration files
+*.env.inc
+*.env.yml
+*.env.json
+
+# Keep example files (if you want to include them)
+!*.env.inc.example
+!*.env.yml.example
+!*.env.json.example
+
+# Ignore backup files
+*.backup
+*.old
+*.bak
+
+# Ignore temporary files
+*~
+*.tmp
+
+# Ignore any local development notes
+NOTES.txt
+local-*

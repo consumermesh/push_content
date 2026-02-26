@@ -1,0 +1,55 @@
+#command-output {
+  font-family: 'Courier New', Courier, monospace;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  padding: 10px;
+  border: 1px solid #ccc;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+#status-container .messages {
+  margin-bottom: 1em;
+}
+
+#output-container {
+  margin: 1em 0;
+}
+
+.button--danger {
+  background-color: #d72638;
+  color: white;
+  border-color: #d72638;
+}
+
+.button--danger:hover {
+  background-color: #b71c1c;
+  border-color: #b71c1c;
+}
+
+#cmesh-push-content-form .form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 1em;
+}
+
+#cmesh-push-content-form .form-actions .button {
+  flex: 0 0 auto;
+}
+
+#cmesh-push-content-form .button--primary {
+  background-color: #0074bd;
+  color: white;
+  border-color: #0074bd;
+  padding: 8px 16px;
+}
+
+#cmesh-push-content-form .button--primary:hover {
+  background-color: #005a8e;
+  border-color: #005a8e;
+}
+
+#cmesh-push-content-form .commands-info {
+  margin-bottom: 1em;
+  font-size: 1.1em;
+}

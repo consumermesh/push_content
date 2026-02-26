@@ -1,0 +1,37 @@
+[Unit]
+Description=Cmesh Build for %i
+After=network.target
+
+[Service]
+Type=simple
+# User and group - adjust for your system
+# Arch Linux: http
+# Debian/Ubuntu: www-data
+User=http
+Group=http
+
+# Environment variables
+Environment="NODE_OPTIONS=--max-old-space-size=8192"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
+Environment="HOME=/tmp"
+Environment="NODE_ENV=production"
+
+# The command to execute (runs asynchronously)
+ExecStart=/opt/cmesh/scripts/pushfin-systemd.sh %i
+
+# Logging
+StandardOutput=append:/var/log/cmesh/build-%i.log
+StandardError=append:/var/log/cmesh/build-%i.log
+
+# Resource limits
+MemoryMax=10G
+MemoryHigh=8G
+CPUQuota=400%%
+TimeoutStartSec=900
+TimeoutStopSec=60
+
+# Restart policy - no automatic restarts
+Restart=no
+
+[Install]
+WantedBy=multi-user.target

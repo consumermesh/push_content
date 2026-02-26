@@ -1,0 +1,185 @@
+#!/bin/bash
+
+# Bunny CDN deployment script
+# Usage: deploy-bunny.sh -o <org> -n <name> --storage-zone <storage_zone> --access-key <access_key>
+
+set -e  # Exit on error
+set -u  # Exit on undefined variable
+
+# Default values
+ORG=""
+NAME=""
+STORAGE_ZONE=""
+ACCESS_KEY=""
+CDN_HOST=""
+PURGE_CACHE=true
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -o)
+      ORG="$2"
+      shift 2
+      ;;
+    -n)
+      NAME="$2"
+      shift 2
+      ;;
+    --storage-zone)
+      STORAGE_ZONE="$2"
+      shift 2
+      ;;
+    --access-key)
+      ACCESS_KEY="$2"
+      shift 2
+      ;;
+    --cdn-host)
+      CDN_HOST="$2"
+      shift 2
+      ;;
+    --no-purge)
+      PURGE_CACHE=false
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: $0 -o <org> -n <name> --storage-zone <storage_zone> --access-key <access_key> [--cdn-host <cdn_host>] [--no-purge]"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
+# Validate required parameters
+if [[ -z "$ORG" ]] || [[ -z "$NAME" ]] || [[ -z "$STORAGE_ZONE" ]] || [[ -z "$ACCESS_KEY" ]]; then
+  echo "Error: Missing required parameters"
+  echo "Usage: $0 -o <org> -n <name> --storage-zone <storage_zone> --access-key <access_key>"
+  exit 1
+fi
+
+echo "=== Bunny CDN Deployment Started ==="
+echo "Organization: $ORG"
+echo "Name: $NAME"
+echo "Storage Zone: $STORAGE_ZONE"
+echo "CDN Host: ${CDN_HOST:-$STORAGE_ZONE.b-cdn.net}"
+echo "Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
+echo ""
+
+# Build paths
+BUILD_DIR="/opt/cmesh/builds/$ORG/$NAME"
+DIST_DIR="$BUILD_DIR/dist"
+
+# Check if build directory exists
+if [[ ! -d "$BUILD_DIR" ]]; then
+  echo "Error: Build directory not found: $BUILD_DIR"
+  exit 1
+fi
+
+# Check if dist directory exists
+if [[ ! -d "$DIST_DIR" ]]; then
+  echo "Error: Dist directory not found: $DIST_DIR"
+  exit 1
+fi
+
+echo "Build directory: $BUILD_DIR"
+echo "Dist directory: $DIST_DIR"
+echo ""
+
+# Set default CDN host if not provided
+if [[ -z "$CDN_HOST" ]]; then
+  CDN_HOST="$STORAGE_ZONE.b-cdn.net"
+fi
+
+# Deploy to Bunny CDN Storage Zone
+echo "Deploying to Bunny CDN Storage Zone: $STORAGE_ZONE"
+echo "CDN Host: $CDN_HOST"
+echo ""
+
+# Create a list of files to upload
+UPLOAD_LIST="/tmp/bunny-upload-list-$ORG-$NAME-$(date +%s).txt"
+find "$DIST_DIR" -type f -exec realpath {} \; | sort > "$UPLOAD_LIST"
+
+echo "Files to upload: $(wc -l < "$UPLOAD_LIST")"
+echo ""
+
+# Upload files to Bunny CDN using their API
+while IFS= read -r file_path; do
+  if [[ -f "$file_path" ]]; then
+    # Get relative path from DIST_DIR
+    relative_path="${file_path#$DIST_DIR/}"
+    filename=$(basename "$file_path")
+    
+    echo "Uploading: $relative_path"
+    
+    # Determine content type
+    content_type="application/octet-stream"
+    case "${file_path##*.}" in
+      html) content_type="text/html" ;;
+      css) content_type="text/css" ;;
+      js) content_type="application/javascript" ;;
+      json) content_type="application/json" ;;
+      xml) content_type="application/xml" ;;
+      jpg|jpeg) content_type="image/jpeg" ;;
+      png) content_type="image/png" ;;
+      gif) content_type="image/gif" ;;
+      svg) content_type="image/svg+xml" ;;
+      woff) content_type="font/woff" ;;
+      woff2) content_type="font/woff2" ;;
+    esac
+    
+    # Upload file to Bunny CDN Storage
+    response=$(curl -s -X PUT \
+      "https://storage.bunnycdn.com/$STORAGE_ZONE/$relative_path" \
+      -H "AccessKey: $ACCESS_KEY" \
+      -H "Content-Type: $content_type" \
+      --data-binary "@$file_path" \
+      -w "\nHTTP_STATUS:%{http_code}" 2>/dev/null)
+    
+    http_status=$(echo "$response" | grep "HTTP_STATUS:" | cut -d: -f2)
+    
+    if [[ "$http_status" == "201" ]] || [[ "$http_status" == "200" ]]; then
+      echo "  ✓ Uploaded successfully (HTTP $http_status)"
+    else
+      echo "  ✗ Failed to upload (HTTP $http_status)"
+      echo "  Response: $response"
+    fi
+  fi
+done < "$UPLOAD_LIST"
+
+# Clean up upload list
+rm -f "$UPLOAD_LIST"
+
+echo ""
+echo "✓ Successfully deployed to Bunny CDN Storage"
+
+# Purge Bunny CDN cache if requested
+if [[ "$PURGE_CACHE" == "true" ]]; then
+  echo ""
+  echo "Purging Bunny CDN cache..."
+  
+  # Purge cache for the entire storage zone
+  response=$(curl -s -X POST \
+    "https://api.bunnycdn.com/pullzone/$STORAGE_ZONE/purgeCache" \
+    -H "AccessKey: $ACCESS_KEY" \
+    -H "Content-Type: application/json" \
+    -w "\nHTTP_STATUS:%{http_code}" 2>/dev/null || echo '{"success": false, "message": "API call failed"}')
+  
+  http_status=$(echo "$response" | grep "HTTP_STATUS:" | cut -d: -f2)
+  
+  if [[ "$http_status" == "200" ]]; then
+    echo "✓ Successfully purged Bunny CDN cache"
+  else
+    echo "✗ Failed to purge Bunny CDN cache"
+    echo "Response: $response"
+  fi
+fi
+
+echo ""
+echo "=== Bunny CDN Deployment Completed ==="
+echo "CDN URL: https://$CDN_HOST/"
+echo "Completed at: $(date '+%Y-%m-%d %H:%M:%S')"
+
+# Return success
+exit 0

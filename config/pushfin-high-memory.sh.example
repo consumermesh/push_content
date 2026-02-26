@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Wrapper script for pushfin.sh with increased memory limits
+# Save this as: /opt/cmesh/scripts/pushfin-high-memory.sh
+# Make executable: chmod +x /opt/cmesh/scripts/pushfin-high-memory.sh
+
+# Set Node.js memory to 8GB
+export NODE_OPTIONS='--max-old-space-size=8192'
+
+# Set other environment variables that might help
+export NODE_ENV=production
+
+# Increase process priority (lower = higher priority, requires sudo)
+# renice -n -5 $$ 2>/dev/null || true
+
+# Log start
+echo "=== Starting build with increased memory limits ==="
+echo "NODE_OPTIONS: $NODE_OPTIONS"
+echo "Available memory:"
+free -h
+echo ""
+
+# Execute the actual script with all arguments passed through
+exec /opt/cmesh/scripts/pushfin.sh "$@"

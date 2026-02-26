@@ -1,7 +1,7 @@
-name: 'cmesh-push-content'
+name: Cmesh Push Content
 type: module
-description: 'Push Content'
-package: Custom
+description: 'Executes command line operations with real-time output display'
 core_version_requirement: ^10 || ^11
+package: Custom
 dependencies:
-  - ultimate_cron:ultimate_cron
+  - drupal:system
