@@ -1,6 +1,6 @@
 {
     "name": "consumermesh/cmesh_push_content",
-    "description": "Push Content",
+    "description": "ConsumerMesh Push Content module for Drupal",
     "type": "drupal-module",
     "minimum-stability": "dev",
     "require": {}
