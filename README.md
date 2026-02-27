@@ -1,6 +1,6 @@
-# Cmesh Push Content Module for Drupal 10
+# Cmesh Push Content Module for Drupal 11
 
-A Drupal 10 module that allows administrators to push content to different environments (dev, staging, production) through a web interface with real-time output display.
+A Drupal 11 module that allows administrators to push content to different environments (dev, staging, production) through a web interface with real-time output display.
 
 ## 🚨 Important Configuration Update
 
@@ -199,7 +199,7 @@ sites/default/files/
 
 ## Requirements
 
-- Drupal 10 or 11
+- Drupal 11
 - PHP exec() function enabled
 - Unix-like operating system (uses `ps` command for process checking)
 - Access to `/opt/cmesh/scripts/pushfin.sh` script
