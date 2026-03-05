@@ -18,6 +18,19 @@ This directory contains environment-specific configuration files.
    - `$name` - Environment/site name
    - `$custom_commands` - Array of custom commands (optional)
 
+## Command Executor
+
+The module supports two command execution backends. Create a `cmesh.env.inc`
+file in this directory to choose which one to use:
+
+```php
+<?php
+// 'systemd' (default, recommended for PHP-FPM) or 'direct' (for Apache mod_php).
+$command_executor = 'direct';
+```
+
+If this file is absent, the module defaults to `systemd`.
+
 ## File Format
 
 Each `.env.inc` file must:

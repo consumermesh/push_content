@@ -1,11 +1,14 @@
 services:
-  # Default service - uses systemd (recommended for PHP-FPM)
-  cmesh_push_content.service:
+  cmesh_push_content.executor.systemd:
     class: Drupal\cmesh_push_content\Service\SystemdCommandExecutorService
     arguments: ['@file_system', '@state']
-  
-  # Alternative: Direct exec service (use only with Apache mod_php)
-  # To use this instead, change the class above to CmeshPushContentService
-  # cmesh_push_content.service:
-  #   class: Drupal\cmesh_push_content\Service\CmeshPushContentService
-  #   arguments: ['@file_system', '@state']
+
+  cmesh_push_content.executor.direct:
+    class: Drupal\cmesh_push_content\Service\CmeshPushContentService
+    arguments: ['@file_system', '@state']
+
+  # Factory that reads $command_executor from cmesh-config/cmesh.env.inc.
+  # Set to 'direct' for mod_php or 'systemd' (default) for PHP-FPM.
+  cmesh_push_content.service:
+    class: Drupal\cmesh_push_content\Service\CommandExecutorFactory
+    arguments: ['@cmesh_push_content.executor.systemd', '@cmesh_push_content.executor.direct', '@file_system']
