@@ -152,6 +152,10 @@ class CmeshPushContentController extends ControllerBase {
     $result = [];
     foreach ($files as $file) {
       $envKey = basename($file, '.env.inc');
+      // Skip the site-wide module config file.
+      if ($envKey === 'cmesh') {
+        continue;
+      }
       $commands = $this->getEnvironmentCommands($envKey);
       $result[] = [
         'env' => $envKey,
@@ -238,8 +242,11 @@ class CmeshPushContentController extends ControllerBase {
       $inc = "$config_dir/{$env}.env.inc";
     }
     else {
-      $files = glob("$config_dir/*.env.inc");
-      $inc = $files[0] ?? NULL;
+      $files = array_filter(
+        glob("$config_dir/*.env.inc"),
+        fn($f) => basename($f, '.env.inc') !== 'cmesh',
+      );
+      $inc = reset($files) ?: NULL;
     }
 
     if (!$inc || !is_file($inc)) {

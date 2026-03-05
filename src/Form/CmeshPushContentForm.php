@@ -203,10 +203,10 @@ class CmeshPushContentForm extends FormBase {
   private function listEnvironments(): array {
     $dir = $this->getConfigDirectory();
     $list = glob("$dir/*.env.inc");
-    return array_map(
-      fn($f) => basename($f, '.env.inc'),
-      $list
-    );
+    return array_values(array_filter(
+      array_map(fn($f) => basename($f, '.env.inc'), $list),
+      fn($name) => $name !== 'cmesh',
+    ));
   }
 
   /**
