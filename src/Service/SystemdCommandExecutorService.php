@@ -145,7 +145,7 @@ class SystemdCommandExecutorService implements CommandExecutorInterface {
     // Store process information in state
     $this->state->set('cmesh_push_content.current', [
       'process_id' => $process_id,
-      'command' => $command,
+      'command' => "pushfin -o $org -n $name -k $command_key -b $bucket",
       'service_name' => $service_name,
       'instance' => $instance,
       'log_file' => $log_file,

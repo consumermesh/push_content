@@ -26,7 +26,7 @@ StandardError=append:/var/log/cmesh/build-%i.log
 # Resource limits
 MemoryMax=10G
 MemoryHigh=8G
-CPUQuota=400%%
+CPUQuota=400%
 TimeoutStartSec=900
 TimeoutStopSec=60
 

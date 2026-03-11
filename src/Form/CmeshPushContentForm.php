@@ -99,7 +99,7 @@ class CmeshPushContentForm extends FormBase {
       if ($status['is_running']) {
         $form['status_container']['status'] = [
           '#markup' => '<div class="messages messages--status">' .
-                       $this->t('Command is currently running: @cmd', ['@cmd' => $status['command']]) .
+                       $this->t('Command is currently running: @cmd', ['@cmd' => $status['command'] ?? '']) .
                        '<br>PID: ' . $status['pid'] .
                        '<br>Started: ' . date('Y-m-d H:i:s', $status['started']) .
                        '</div>',
@@ -110,7 +110,7 @@ class CmeshPushContentForm extends FormBase {
         $form['status_container']['status'] = [
           '#markup' => '<div class="messages messages--status">' .
                        $this->t('Command completed successfully!') .
-                       '<br>Command: ' . $status['command'] .
+                       '<br>Command: ' . ($status['command'] ?? '') .
                        '<br>Started: ' . date('Y-m-d H:i:s', $status['started']) .
                        '<br>Completed: ' . date('Y-m-d H:i:s', $status['completed']) .
                        '<br>Duration: ' . $duration . ' seconds' .
