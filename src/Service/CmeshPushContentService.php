@@ -210,10 +210,10 @@ class CmeshPushContentService implements CommandExecutorInterface {
     return [
       'is_running' => $is_running,
       'output' => $output,
-      'command' => $process_info['command'],
-      'started' => $process_info['started'],
+      'command' => $process_info['command'] ?? '',
+      'started' => $process_info['started'] ?? time(),
       'completed' => $process_info['completed'] ?? NULL,
-      'pid' => $process_info['pid'],
+      'pid' => $process_info['pid'] ?? '',
     ];
   }
 

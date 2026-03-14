@@ -96,22 +96,25 @@ class CmeshPushContentForm extends FormBase {
     ];
 
     if ($status) {
+      $cmd = (string) ($status['command'] ?? '');
+      $pid = (string) ($status['pid'] ?? '');
+      $started = $status['started'] ?? time();
       if ($status['is_running']) {
         $form['status_container']['status'] = [
           '#markup' => '<div class="messages messages--status">' .
-                       $this->t('Command is currently running: @cmd', ['@cmd' => $status['command'] ?? '']) .
-                       '<br>PID: ' . $status['pid'] .
-                       '<br>Started: ' . date('Y-m-d H:i:s', $status['started']) .
+                       $this->t('Command is currently running: @cmd', ['@cmd' => $cmd]) .
+                       '<br>PID: ' . $pid .
+                       '<br>Started: ' . date('Y-m-d H:i:s', $started) .
                        '</div>',
         ];
       }
       elseif (isset($status['completed'])) {
-        $duration = $status['completed'] - $status['started'];
+        $duration = $status['completed'] - $started;
         $form['status_container']['status'] = [
           '#markup' => '<div class="messages messages--status">' .
                        $this->t('Command completed successfully!') .
-                       '<br>Command: ' . ($status['command'] ?? '') .
-                       '<br>Started: ' . date('Y-m-d H:i:s', $status['started']) .
+                       '<br>Command: ' . $cmd .
+                       '<br>Started: ' . date('Y-m-d H:i:s', $started) .
                        '<br>Completed: ' . date('Y-m-d H:i:s', $status['completed']) .
                        '<br>Duration: ' . $duration . ' seconds' .
                        '</div>',
