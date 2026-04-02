@@ -161,6 +161,9 @@ case "$COMMAND_KEY" in
         BUNNY_PZ="${!PZ_VAR:-${BUNNY_PULL_ZONE_ID:-}}"
 
         BUNNY_CMD="/opt/cmesh/scripts/deploy-bunny.sh -o '$ORG' -n '$NAME' --storage-zone '$BUNNY_SZ' --access-key '$BUNNY_AK'"
+        if [[ -n "${BUNNY_REGION:-}" ]]; then
+            BUNNY_CMD="$BUNNY_CMD --region '$BUNNY_REGION'"
+        fi
         if [[ -n "$BUNNY_PZ" ]]; then
             BUNNY_CMD="$BUNNY_CMD --pull-zone-id '$BUNNY_PZ'"
         fi
