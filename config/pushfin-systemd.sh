@@ -139,13 +139,32 @@ case "$COMMAND_KEY" in
             echo "Error: /opt/cmesh/scripts/deploy-bunny.sh not found" >&2
             exit 1
         fi
-        
-        if [[ -z "${BUNNY_ACCESS_KEY:-}" ]]; then
-            echo "Error: BUNNY_ACCESS_KEY environment variable not set" >&2
+
+        # Per-project env var lookup helper: BUNNY_<SUFFIX>_<ORG>_<NAME> → fallback
+        PROJ_KEY="${ORG^^}_${NAME^^}"
+        PROJ_KEY="${PROJ_KEY//-/_}"
+
+        # Access key (storage zone password) — per-project, required
+        AK_VAR="BUNNY_ACCESS_KEY_${PROJ_KEY}"
+        BUNNY_AK="${!AK_VAR:-${BUNNY_ACCESS_KEY:-}}"
+        if [[ -z "$BUNNY_AK" ]]; then
+            echo "Error: Set $AK_VAR or BUNNY_ACCESS_KEY in /opt/cmesh/cdn.env" >&2
             exit 1
         fi
-        
-        execute_command "/opt/cmesh/scripts/deploy-bunny.sh -o '$ORG' -n '$NAME' --storage-zone \$BUNNY_STORAGE_ZONE --access-key \$BUNNY_ACCESS_KEY" "Bunny CDN deployment"
+
+        # Storage zone — defaults to org-name convention
+        SZ_VAR="BUNNY_STORAGE_ZONE_${PROJ_KEY}"
+        BUNNY_SZ="${!SZ_VAR:-${BUNNY_STORAGE_ZONE:-$ORG-$NAME}}"
+
+        # Pull zone ID — per-project, optional (enables redirects + cache purge)
+        PZ_VAR="BUNNY_PULL_ZONE_ID_${PROJ_KEY}"
+        BUNNY_PZ="${!PZ_VAR:-${BUNNY_PULL_ZONE_ID:-}}"
+
+        BUNNY_CMD="/opt/cmesh/scripts/deploy-bunny.sh -o '$ORG' -n '$NAME' --storage-zone '$BUNNY_SZ' --access-key '$BUNNY_AK'"
+        if [[ -n "$BUNNY_PZ" ]]; then
+            BUNNY_CMD="$BUNNY_CMD --pull-zone-id '$BUNNY_PZ'"
+        fi
+        execute_command "$BUNNY_CMD" "Bunny CDN deployment"
         ;;
     
     "aws")

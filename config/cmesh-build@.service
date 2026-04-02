@@ -16,6 +16,9 @@ Environment="PATH=/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin"
 Environment="HOME=/tmp"
 Environment="NODE_ENV=production"
 
+# CDN credentials and per-project config (optional, create if needed)
+EnvironmentFile=-/opt/cmesh/cdn.env
+
 # The command to execute (runs asynchronously)
 ExecStart=/opt/cmesh/scripts/pushfin-systemd.sh %i
 
