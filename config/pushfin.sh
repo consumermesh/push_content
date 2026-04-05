@@ -90,28 +90,9 @@ case "$command_key" in
         ;;
     "bunny")
         echo "Executing Bunny CDN deployment"
-        # Per-project env var lookup: BUNNY_<SUFFIX>_<ORG>_<NAME> → fallback
-        PROJ_KEY="${org^^}_${name^^}"
-        PROJ_KEY="${PROJ_KEY//-/_}"
-
-        # Access key (storage zone password) — per-project, required
-        AK_VAR="BUNNY_ACCESS_KEY_${PROJ_KEY}"
-        export BUNNY_ACCESS_KEY="${!AK_VAR:-${BUNNY_ACCESS_KEY:-}}"
-        if [[ -z "$BUNNY_ACCESS_KEY" ]]; then
-            echo "Error: Set $AK_VAR or BUNNY_ACCESS_KEY" >&2
-            exit 1
-        fi
-
-        # Storage zone — defaults to org-name convention
-        SZ_VAR="BUNNY_STORAGE_ZONE_${PROJ_KEY}"
-        export BUNNY_STORAGE_ZONE="${!SZ_VAR:-${BUNNY_STORAGE_ZONE:-$org-$name}}"
-
-        # Pull zone ID — per-project, optional (enables redirects + cache purge)
-        PZ_VAR="BUNNY_PULL_ZONE_ID_${PROJ_KEY}"
-        export BUNNY_PULL_ZONE_ID="${!PZ_VAR:-${BUNNY_PULL_ZONE_ID:-}}"
-
-        # Region — optional
-        export BUNNY_REGION="${BUNNY_REGION:-}"
+        # Set Bunny-specific environment variables if needed
+        export BUNNY_STORAGE_ZONE="${BUNNY_STORAGE_ZONE:-}"
+        export BUNNY_ACCESS_KEY="${BUNNY_ACCESS_KEY:-}"
         ;;
     "aws")
         echo "Executing AWS deployment"
