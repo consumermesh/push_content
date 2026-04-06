@@ -16,6 +16,12 @@ This directory contains environment-specific configuration files.
 3. Each file can define:
    - `$org` - Organization name
    - `$name` - Environment/site name
+   - `$bucket` - Optional app domain / S3 bucket override. On the default
+     `pushfin.sh` path it is forwarded as `-d` and used as the destination
+     bucket name (which is also the public app domain, e.g.
+     `mars-snickersdemo-app.consumermesh.site`). When unset, `pushfin.sh`
+     falls back to the legacy `<org>.<name>-app.consumermesh.site` formula.
+     For the `aws` and `keycdn` command keys it is forwarded as `--bucket`.
    - `$custom_commands` - Array of custom commands (optional)
 
 ## Command Executor
@@ -51,6 +57,12 @@ Each `.env.inc` file must:
 
 $org = 'your-org';
 $name = 'your-site-name';
+
+// Optional: override the app domain / S3 bucket for the default pushfin.sh
+// path. Required for projects on the new <org>-<name>-app.consumermesh.site
+// single-subdomain naming convention; omit for legacy <org>.<name>-app
+// projects (the formula is applied automatically).
+// $bucket = 'your-org-your-site-name-app.consumermesh.site';
 ```
 
 ### Advanced Example with Custom Commands:

@@ -107,13 +107,20 @@ case "$COMMAND_KEY" in
             echo "Error: /opt/cmesh/scripts/pushfin.sh not found" >&2
             exit 1
         fi
-        
+
         if [[ ! -x "/opt/cmesh/scripts/pushfin.sh" ]]; then
             echo "Error: /opt/cmesh/scripts/pushfin.sh is not executable" >&2
             exit 1
         fi
-        
-        execute_command "/opt/cmesh/scripts/pushfin.sh -o '$ORG' -n '$NAME'" "Default pushfin.sh"
+
+        # Forward $bucket from .env.inc as -d (canonical app-domain override).
+        # Without this, projects on the new <org>-<name>-app.consumermesh.site
+        # naming convention can't deploy via the default S3 path.
+        PUSHFIN_CMD="/opt/cmesh/scripts/pushfin.sh -o '$ORG' -n '$NAME'"
+        if [[ -n "$BUCKET" ]]; then
+            PUSHFIN_CMD="$PUSHFIN_CMD -d '$BUCKET'"
+        fi
+        execute_command "$PUSHFIN_CMD" "Default pushfin.sh"
         ;;
     
     "cloudflare")
